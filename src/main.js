@@ -6,6 +6,7 @@ import './style.css'
 const router = createRouter({
   history: createWebHistory(),
   routes: [
+    { path: '/', component: () => import('./views/Home.vue') },
     { path: '/admin', component: () => import('./views/Admin.vue') },
     { path: '/admin/e/:id', component: () => import('./views/AdminEvent.vue'), meta: { admin: true } },
     { path: '/g/:token', component: () => import('./views/Gallery.vue') },

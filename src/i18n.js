@@ -6,6 +6,13 @@ const S = {
   loading: ['Memuatkan', 'Loading'],
   notFound: ['Majlis tidak dijumpai', 'Event not found'],
   notFoundSub: ['Semak semula pautan anda.', 'Please check your link.'],
+  // home ("/")
+  homeEyebrow: ['Undangan perkahwinan digital', 'Digital wedding invitations'],
+  homeTitle: ['Sepatah dua kata untuk pengantin', 'A few words for the couple'],
+  homeLede: ['Undangan, RSVP, ucapan video dan galeri kenangan, semuanya dalam satu pautan.', 'Invitation, RSVP, video wishes and keepsake galleries, all in one link.'],
+  homeF1: ['Undangan & RSVP dalam talian', 'Online invitation & RSVP'],
+  homeF2: ['Buku tetamu video melalui QR', 'QR video guestbook'],
+  homeF3: ['Galeri ucapan & gambar untuk pengantin', 'Wish & photo galleries for the couple'],
   loadFail: ['Tidak dapat dimuatkan', "Couldn't load"],
   loadFailSub: ['Semak sambungan internet anda, kemudian cuba lagi.', 'Check your internet connection, then try again.'],
   // guestbook landing
