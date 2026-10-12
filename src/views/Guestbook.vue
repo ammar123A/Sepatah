@@ -27,21 +27,31 @@ const phase = computed(() => !ev.value ? null
 const opensAt = computed(() => ev.value && `${dateStr(ev.value.window_start)}, ${timeStr(ev.value.window_start)}`)
 
 const screen = ref('landing') // landing | video | done | photo
-const go = (s) => (screen.value = s)
+const go = (s) => {
+  dropShot()
+  screen.value = s
+}
 const doneKind = ref('video')
 
-// ---- photo ----
-const { el: camEl, ok: camOk, open: openCam, stop: stopCam } = camera()
-watch(screen, (s) => (s === 'photo' ? openCam(false) : stopCam()), { flush: 'post' })
-onBeforeUnmount(stopCam)
+// ---- photo: shoot → review → send ----
+const { el: camEl, ok: camOk, open: openCam, stop: stopCam, flip, facing } = camera()
+const shot = ref(null) // { blob, url } waiting for the guest's OK
+watch([screen, shot], ([s, p]) => (s === 'photo' && !p ? openCam(false) : stopCam()), { flush: 'post' })
+onBeforeUnmount(() => { stopCam(); dropShot() })
 
 const frame = ref(0)
 const sending = ref(false)
 const err = ref('')
 
+function dropShot() {
+  if (shot.value) URL.revokeObjectURL(shot.value.url)
+  shot.value = null
+  err.value = ''
+}
+
 async function shoot() {
   const v = camEl.value
-  if (!v?.videoWidth || sending.value) return
+  if (!v?.videoWidth || shot.value) return
   await Promise.all([document.fonts.load('26px Gloock'), document.fonts.load('600 13px Figtree')])
   const k = 3, f = FR[frame.value], W = 326, camH = 320, camW = W - f.p * 2, H = f.p * 2 + camH + 84
   const c = document.createElement('canvas')
@@ -52,11 +62,13 @@ async function shoot() {
   g.fillStyle = f.bg
   g.fillRect(0, 0, W, H)
   if (f.bd) { g.strokeStyle = f.bd; g.lineWidth = 1; g.strokeRect(0.5, 0.5, W - 1, H - 1) }
-  // cover-crop the video, mirrored like the preview
+  // cover-crop the video, mirrored like the preview (selfie camera only)
   const r = Math.max(camW / v.videoWidth, camH / v.videoHeight), sw = camW / r, sh = camH / r
   g.save()
-  g.translate(f.p + camW, f.p)
-  g.scale(-1, 1)
+  if (facing.value === 'user') {
+    g.translate(f.p + camW, f.p)
+    g.scale(-1, 1)
+  } else g.translate(f.p, f.p)
   g.drawImage(v, (v.videoWidth - sw) / 2, (v.videoHeight - sh) / 2, sw, sh, 0, 0, camW, camH)
   g.restore()
   g.textAlign = 'center'
@@ -70,11 +82,14 @@ async function shoot() {
   g.font = '600 13px Figtree, sans-serif'
   g.fillText(date.value, W / 2, f.p + camH + 66)
   const blob = await new Promise((res) => c.toBlob(res, 'image/jpeg', 0.9))
+  shot.value = { blob, url: URL.createObjectURL(blob) }
+}
 
+async function send() {
   sending.value = true
   err.value = ''
   try {
-    await sendMedia(blob, { slug, kind: 'photo' }, () => {})
+    await sendMedia(shot.value.blob, { slug, kind: 'photo' }, () => {})
     doneKind.value = 'photo'
     go('done')
   } catch {
@@ -91,7 +106,7 @@ async function shoot() {
   <div v-else class="shell">
     <div class="app">
       <header class="bar">
-        <button v-if="screen === 'photo'" class="back" :aria-label="t('back')" @click="go('landing')">
+        <button v-if="screen === 'photo'" class="back" :aria-label="t('back')" :disabled="sending" @click="shot ? dropShot() : go('landing')">
           <svg class="ic"><use href="#i-back" /></svg>
         </button>
         <div v-else class="mark">Sepatah</div>
@@ -158,11 +173,23 @@ async function shoot() {
           </div>
         </template>
 
+        <template v-else-if="screen === 'photo' && shot">
+          <h1 class="h1 sm">{{ t('photoReview') }}</h1>
+          <img class="polaroid" :src="shot.url" :alt="t('photoReview')" />
+          <div class="grow"></div>
+          <p v-if="err" class="err" role="alert"><svg class="ic sm"><use href="#i-alert" /></svg>{{ t('upFail') }}</p>
+          <button class="btn primary" :disabled="sending" @click="send">
+            {{ sending ? t('sending') : err ? t('retry') : t('sendPhoto') }}
+          </button>
+          <button class="linkbtn" :disabled="sending" @click="dropShot">{{ t('retakePhoto') }}</button>
+        </template>
+
         <template v-else-if="screen === 'photo'">
           <h1 class="h1 sm">{{ t('photoTitle') }}</h1>
           <div class="polaroid" :style="{ padding: FR[frame].p + 'px', background: FR[frame].bg, border: '1px solid ' + (FR[frame].bd || 'transparent') }">
             <div class="shot" :style="{ aspectRatio: 326 - FR[frame].p * 2 + ' / 320' }">
-              <video ref="camEl" class="feed" autoplay muted playsinline v-show="camOk"></video>
+              <video ref="camEl" class="feed" :class="{ rear: facing !== 'user' }" autoplay muted playsinline v-show="camOk"></video>
+              <button v-if="camOk" class="flip" :aria-label="t('flip')" @click="flip"><svg class="ic"><use href="#i-flip" /></svg></button>
               <div v-if="!camOk" class="state">
                 <div class="badge"><svg class="ic"><use href="#i-alert" /></svg></div>
                 <h2>{{ t('errTitle') }}</h2>
@@ -178,8 +205,7 @@ async function shoot() {
             </button>
           </div>
           <div class="grow"></div>
-          <p v-if="err" class="err" role="alert"><svg class="ic sm"><use href="#i-alert" /></svg>{{ t('upFail') }}</p>
-          <button class="shutter" :disabled="!camOk || sending" :aria-label="t('shutter')" @click="shoot"><i></i></button>
+          <button class="shutter" :disabled="!camOk" :aria-label="t('shutter')" @click="shoot"><i></i></button>
           <p class="hint">{{ t('photoHint') }}</p>
         </template>
       </main>

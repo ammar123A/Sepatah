@@ -10,7 +10,7 @@ const emit = defineEmits(['back', 'done'])
 const MAX = 30
 const C = 276.46 // ring circumference, r = 44
 const phase = ref('record') // record | review
-const { el: camEl, ok: camOk, err: camErr, open: openCam, stop: stopCam, stream } = camera()
+const { el: camEl, ok: camOk, err: camErr, open: openCam, stop: stopCam, flip, facing, stream } = camera()
 
 onMounted(() => openCam(true))
 onBeforeUnmount(() => { stopRec(); stopCam() })
@@ -132,7 +132,9 @@ onBeforeUnmount(() => clip.value && URL.revokeObjectURL(clip.value.url))
       <main :key="phase" class="screen">
         <template v-if="phase === 'record'">
           <div class="cam">
-            <video ref="camEl" class="feed" autoplay muted playsinline v-show="camOk"></video>
+            <video ref="camEl" class="feed" :class="{ rear: facing !== 'user' }" autoplay muted playsinline v-show="camOk"></video>
+            <!-- hidden while recording: swapping the stream would cut the recording -->
+            <button v-if="camOk && rec !== 'recording'" class="flip" :aria-label="t('flip')" @click="flip"><svg class="ic"><use href="#i-flip" /></svg></button>
             <div v-if="!camOk" class="state">
               <div class="badge"><svg class="ic"><use href="#i-alert" /></svg></div>
               <h2>{{ t('errTitle') }}</h2>

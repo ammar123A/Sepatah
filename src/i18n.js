@@ -61,6 +61,10 @@ const S = {
   frame: ['Bingkai', 'Frame'],
   shutter: ['Ambil gambar', 'Take photo'],
   photoHint: ['Gambar masuk ke galeri gambar pengantin', "Photos go to the couple's photo gallery"],
+  photoReview: ['Semak gambar anda', 'Review your photo'],
+  sendPhoto: ['Hantar gambar', 'Send photo'],
+  retakePhoto: ['Ambil semula', 'Retake'],
+  flip: ['Tukar kamera', 'Switch camera'],
   // couple gallery
   galEyebrow: ['Galeri ucapan & gambar', 'Wishes & photos'],
   galPre: ['Ucapan awal', 'Early wishes'],

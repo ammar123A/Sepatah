@@ -74,25 +74,31 @@ export function useEvent(slug, onLoad) {
 
 // Camera stream bound to a <video> ref. Call stop() when leaving the screen.
 export function camera() {
-  const el = ref(null), ok = ref(true), err = ref('')
-  let stream = null
+  const el = ref(null), ok = ref(true), err = ref(''), facing = ref('user')
+  let stream = null, withAudio = false
   const stop = () => {
     stream?.getTracks().forEach((tr) => tr.stop())
     stream = null
   }
-  async function open(audio) {
+  async function open(audio = withAudio) {
+    withAudio = audio
     stop()
     ok.value = true
     err.value = ''
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', height: { ideal: 720 } }, audio })
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing.value, height: { ideal: 720 } }, audio })
       if (el.value) el.value.srcObject = stream
     } catch (e) {
       ok.value = false
       err.value = e.name
     }
   }
-  return { el, ok, err, open, stop, stream: () => stream }
+  // front <-> back; facingMode is a hint, so single-camera laptops just reopen the same camera
+  const flip = () => {
+    facing.value = facing.value === 'user' ? 'environment' : 'user'
+    open()
+  }
+  return { el, ok, err, open, stop, flip, facing, stream: () => stream }
 }
 
 export const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`
