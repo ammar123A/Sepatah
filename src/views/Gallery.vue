@@ -4,6 +4,7 @@ import { ref, computed, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import { downloadZip } from 'client-zip'
 import { sb, fmt } from '../lib.js'
+import { applyTheme } from '../themes.js'
 import { t, initLang, dateStr, timeStr, LangToggle } from '../i18n.js'
 
 const TABS = [['pre', 'galPre'], ['event', 'galEvent'], ['photo', 'galPhoto']]
@@ -25,6 +26,7 @@ async function load(quiet) {
   loadedAt = Date.now()
   if (first) {
     initLang(data.default_lang)
+    applyTheme(data.theme)
     tab.value = TABS.find(([k]) => list(k).length)?.[0] || 'pre'
   }
   state.value = 'ok'

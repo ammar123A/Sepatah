@@ -65,6 +65,12 @@ const S = {
   sendPhoto: ['Hantar gambar', 'Send photo'],
   retakePhoto: ['Ambil semula', 'Retake'],
   flip: ['Tukar kamera', 'Switch camera'],
+  layout: ['Susun atur', 'Layout'],
+  single: ['Satu gambar', 'Single'],
+  strip: ['Jalur (3)', 'Strip (3)'],
+  stripHint: ['3 gambar, kiraan 3 saat sebelum setiap satu', '3 photos, a 3-second countdown before each'],
+  theirFrame: ['Reka bentuk pengantin', "The couple's design"],
+  kadAlt: ['Kad undangan {couple}', 'Invitation card for {couple}'],
   // couple gallery
   galEyebrow: ['Galeri ucapan & gambar', 'Wishes & photos'],
   galPre: ['Ucapan awal', 'Early wishes'],

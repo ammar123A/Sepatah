@@ -6,7 +6,7 @@
     "dev": "vite --host",
     "build": "vite build",
     "preview": "vite preview --host",
-    "check": "node src/invite.check.js"
+    "check": "node src/invite.check.js && node src/themes.check.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",

@@ -9,6 +9,7 @@
   --r-ctl: 12px; --r-card: 20px; --r-arch: 999px 999px 6px 6px;
   --ring: 0 0 0 3px rgba(31, 58, 45, .18);
   --ease: cubic-bezier(.2, .8, .2, 1);
+  --sprig: none; /* the bouquet is drawn per wedding: themes.js bouquet() */
   --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 * { box-sizing: border-box; }
@@ -39,14 +40,14 @@ a { color: var(--ink); }
 .back { position: relative; flex-shrink: 0; width: 44px; height: 44px; border-radius: 50%; border: 1.5px solid var(--ctl); background: transparent; color: var(--ink); display: grid; place-items: center; transition: transform .2s var(--ease), background .2s; }
 .back:active { transform: scale(.94); }
 @media (hover: hover) { .back:hover { background: var(--tint); } }
-.dark .back { background: rgba(237, 230, 214, .08); border-color: transparent; color: var(--on-deep); }
+.dark .back { background: color-mix(in srgb, var(--on-deep) 8%, transparent); border-color: transparent; color: var(--on-deep); }
 .back[aria-pressed=false] { opacity: .5; }
 .back[aria-pressed=true]::after { content: ''; position: absolute; inset: -1.5px; border-radius: 50%; border: 1.5px solid var(--deep); animation: ping 1.8s ease-out infinite; }
-.pill { padding: 8px 14px; border-radius: var(--r-ctl); background: rgba(237, 230, 214, .1); font-weight: 600; font-variant-numeric: tabular-nums; }
+.pill { padding: 8px 14px; border-radius: var(--r-ctl); background: color-mix(in srgb, var(--on-deep) 10%, transparent); font-weight: 600; font-variant-numeric: tabular-nums; }
 .lang { display: flex; height: 36px; padding: 3px; border: 1.5px solid var(--ctl); border-radius: 10px; }
 .lang button { min-width: 40px; border: 0; border-radius: 7px; background: transparent; color: var(--mut); font-size: 13px; font-weight: 600; transition: background .25s var(--ease), color .25s; }
 .lang button[aria-pressed=true] { background: var(--deep); color: var(--on-deep); }
-.dark .lang { border-color: rgba(237, 230, 214, .25); }
+.dark .lang { border-color: color-mix(in srgb, var(--on-deep) 25%, transparent); }
 .dark .lang button { color: var(--on-deep-mut); }
 .dark .lang button[aria-pressed=true] { background: var(--on-deep); color: var(--deep-3); }
 
@@ -105,23 +106,36 @@ a { color: var(--ink); }
 @keyframes float { 50% { transform: translateY(-8px) rotate(-1deg); } }
 .env.open { animation-play-state: paused; cursor: default; }
 /* flower sprigs tucked on two corners, like a styled invitation flat-lay */
-/* offsets put the bouquet's centre (55% 47.5% of sprig.svg) on the corner */
-.env::before, .env::after { content: ''; position: absolute; z-index: 5; width: 52%; aspect-ratio: 1; background: url(/sprig.svg) center / contain no-repeat; pointer-events: none; transition: opacity .4s; }
+/* offsets put the bouquet's centre (55% 47.5% of the bouquet) on the corner */
+.env::before, .env::after { content: ''; position: absolute; z-index: 5; width: 52%; aspect-ratio: 1; background: var(--sprig) center / contain no-repeat; pointer-events: none; transition: opacity .4s; }
 .env::before { left: -28.6%; top: -35.3%; }
 .env::after { right: -28.6%; bottom: -35.3%; transform: rotate(180deg); }
 .env.open::before, .env.open::after { opacity: 0; }
 .env:focus-visible { outline-offset: 8px; border-radius: 8px; }
 .env-back, .env-front, .env-flap { position: absolute; inset: 0; border-radius: 6px; }
-.env-back { z-index: 0; background: var(--deep-3); box-shadow: 0 40px 60px -30px rgba(20, 42, 31, .55), 0 12px 24px -12px rgba(20, 42, 31, .35); }
+.env-back { z-index: 0; background: var(--deep-3); box-shadow: 0 40px 60px -30px color-mix(in srgb, var(--deep-3) 55%, transparent), 0 12px 24px -12px color-mix(in srgb, var(--deep-3) 35%, transparent); }
 .env-card { position: absolute; z-index: 1; left: 12px; right: 12px; top: 8px; bottom: 8px; display: flex; flex-direction: column; align-items: center; gap: 6px; padding-top: 22px; border-radius: 4px; background: var(--grain), var(--card); color: var(--ink); box-shadow: 0 -4px 16px rgba(0, 0, 0, .12); transition: transform .8s var(--ease) .55s; }
 .env-card small { font-size: 12px; font-weight: 500; color: var(--mut); }
 .env-card b { font: 400 28px/1.1 var(--names); color: var(--deep); }
 .env-card i { font-style: normal; font-size: .6em; color: var(--mut); }
 .env-front { z-index: 2; background: var(--deep); clip-path: polygon(0 0, 50% 55%, 100% 0, 100% 100%, 0 100%); }
 .env-flap { z-index: 3; background: var(--deep-2); clip-path: polygon(0 0, 100% 0, 50% 58%); transform-origin: top; transition: transform .65s var(--ease) .1s, z-index 0s .4s; }
-.seal { position: absolute; z-index: 4; left: 50%; top: 58%; width: 66px; height: 66px; margin: -33px 0 0 -33px; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 35% 30%, #E2735A, var(--accent) 55%, #8E2D1B); color: var(--on-accent); font: 400 24px/1 var(--names); box-shadow: inset 0 0 0 5px rgba(0, 0, 0, .08), 0 6px 14px rgba(0, 0, 0, .35); transition: transform .35s var(--ease), opacity .3s; }
+.seal { position: absolute; z-index: 4; left: 50%; top: 58%; width: 66px; height: 66px; margin: -33px 0 0 -33px; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--accent), white 25%), var(--accent) 55%, color-mix(in srgb, var(--accent), black 30%)); color: var(--on-accent); font: 400 24px/1 var(--names); box-shadow: inset 0 0 0 5px rgba(0, 0, 0, .08), 0 6px 14px rgba(0, 0, 0, .35); transition: transform .35s var(--ease), opacity .3s; }
 .seal::before { content: ''; position: absolute; inset: 0; border-radius: 50%; border: 1px solid var(--accent); animation: ping 2s ease-out infinite; }
-.seal::after { content: ''; position: absolute; inset: 7px; border-radius: 50%; border: 1px dashed rgba(255, 244, 236, .4); }
+.seal::after { content: ''; position: absolute; inset: 7px; border-radius: 50%; border: 1px dashed color-mix(in srgb, var(--on-accent) 40%, transparent); }
+.env-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top; border-radius: 4px; }
+/* the couple's own kad artwork takes the arch's place */
+.kad { display: block; max-width: 100%; max-height: 72dvh; border-radius: 8px; box-shadow: 0 24px 40px -24px color-mix(in srgb, var(--deep-3) 45%, transparent); }
+.kad.sm { max-height: 40dvh; }
+/* frame-only artwork: names written in the frame's empty middle; text scales with the frame (cqi) */
+.framed { position: relative; width: 100%; container-type: inline-size; }
+.framed > img { display: block; width: 100%; height: auto; }
+.framed > div { position: absolute; inset: 18% 16%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3cqi; text-align: center; }
+.framed .names { font-size: clamp(24px, 12cqi, 64px); text-wrap: balance; }
+.framed .eyebrow, .framed .lede { font-size: clamp(12px, 4cqi, 18px); }
+.framed.sm { width: min(300px, 100%); }
+.env-card.fr img { object-position: center; }
+.env-card.fr > :not(img) { position: relative; } /* text above the frame image */
 .cover:has(.env.open) > :not(.env) { opacity: 0 !important; transition: opacity .3s; } /* !important beats the .tap rise fill */
 .env.open .seal { transform: scale(1.5) rotate(20deg); opacity: 0; }
 .env.open .env-flap { transform: rotateX(180deg); z-index: 0; }
@@ -145,7 +159,7 @@ a { color: var(--ink); }
 .recbtn:disabled { opacity: .3; }
 .ring { position: absolute; inset: 0; transform: rotate(-90deg); }
 .ring circle { fill: none; stroke-width: 4; }
-.track { stroke: rgba(237, 230, 214, .2); }
+.track { stroke: color-mix(in srgb, var(--on-deep) 20%, transparent); }
 .prog { stroke: var(--on-deep); stroke-linecap: round; stroke-dasharray: 276.46; transition: stroke-dashoffset .1s linear; }
 .core { width: 70px; height: 70px; border-radius: 50%; background: var(--accent); transition: all .3s var(--ease); }
 .core.stop { width: 32px; height: 32px; border-radius: 8px; }
@@ -172,7 +186,7 @@ a { color: var(--ink); }
 .field em { font-style: normal; font-weight: 400; color: var(--mut); }
 .field input, .field textarea, .field select, .row input { min-height: 52px; padding: 0 14px; border-radius: var(--r-ctl); border: 1.5px solid var(--ctl); background: var(--card); font: inherit; font-size: var(--fs-base); font-weight: 400; color: var(--ink); transition: border-color .2s, box-shadow .2s; }
 .field textarea { padding: 12px 14px; min-height: 104px; line-height: 1.5; resize: vertical; }
-.field input::placeholder, .field textarea::placeholder, .row input::placeholder { color: rgba(92, 99, 93, .7); }
+.field input::placeholder, .field textarea::placeholder, .row input::placeholder { color: color-mix(in srgb, var(--mut) 70%, transparent); }
 .field input:focus, .field textarea:focus, .field select:focus, .row input:focus { outline: 0; border-color: var(--deep); box-shadow: var(--ring); }
 .field input[type=file] { padding: 12px 14px; }
 .progress { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
@@ -181,8 +195,19 @@ a { color: var(--ink); }
 .debug summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 500; }
 .debug pre { margin: 0 0 8px; padding: 12px; border: 1px solid var(--line); border-radius: var(--r-ctl); background: var(--card); font-size: 12px; white-space: pre-wrap; word-break: break-word; }
 
-.polaroid { align-self: center; width: min(326px, 100%); box-shadow: 0 24px 40px -24px rgba(20, 42, 31, .45); transform: rotate(-1.5deg); transition: padding .3s var(--ease), background .3s, transform .3s var(--ease); }
+.polaroid { align-self: center; width: min(326px, 100%); box-shadow: 0 24px 40px -24px color-mix(in srgb, var(--deep-3) 45%, transparent); transform: rotate(-1.5deg); transition: padding .3s var(--ease), background .3s, transform .3s var(--ease); }
+.polaroid.tall { width: auto; max-width: 100%; max-height: 62dvh; }
+/* live preview: window, caption and the couple's overlay sit where themes.js LAYOUTS puts them in the photo */
+div.polaroid { position: relative; }
 .shot { position: relative; background: var(--deep); overflow: hidden; }
+div.polaroid .shot { position: absolute; }
+div.polaroid .cap { position: absolute; left: 0; right: 0; bottom: 0; height: auto; }
+.ovl { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.cdown { position: absolute; inset: 0; display: grid; place-items: center; font: 400 96px/1 var(--display); color: #fff; text-shadow: 0 2px 16px rgba(0, 0, 0, .5); animation: pop .3s var(--ease) both; }
+.dots { display: flex; justify-content: center; gap: 8px; }
+.dots i { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--deep); transition: background .2s; }
+.dots i.on { background: var(--deep); }
+.seg.sm label { min-height: 44px; font-size: 15px; }
 .cap { height: 84px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; transition: color .3s; }
 .cn { font: 400 26px/1 var(--names); }
 .cd { font-size: 13px; font-weight: 600; }
@@ -190,7 +215,9 @@ a { color: var(--ink); }
 .thumb { position: relative; width: 52px; height: 66px; padding: 0; border: 1px solid var(--line); transition: transform .2s var(--ease); }
 .thumb:active { transform: scale(.94); }
 .thumb.on { outline: 2px solid var(--deep); outline-offset: 3px; transform: translateY(-3px); }
-.thumb i { position: absolute; background: #8A938C; }
+.thumb.own { background: center / cover no-repeat var(--card); }
+.thumb:disabled { opacity: .5; }
+.thumb i { position: absolute; inset: 3px 3px 16px; background:color-mix(in srgb, var(--mut) 70%, transparent); }
 .shutter { align-self: center; width: 80px; height: 80px; padding: 0; border-radius: 50%; border: 2px solid var(--deep); background: transparent; display: grid; place-items: center; transition: transform .2s var(--ease); }
 .shutter:active { transform: scale(.92); }
 .shutter:disabled { opacity: .3; }
@@ -209,7 +236,7 @@ a { color: var(--ink); }
 .tabs button[aria-pressed=true] { background: var(--deep); color: var(--on-deep); }
 .tabs small { margin-left: 6px; font-weight: 500; opacity: .7; font-variant-numeric: tabular-nums; }
 .box { width: min(920px, 100vw - 32px); max-height: calc(100dvh - 32px); padding: 12px; border: 0; border-radius: var(--r-card); background: var(--card); color: var(--ink); }
-.box::backdrop { background: rgba(20, 42, 31, .85); }
+.box::backdrop { background: color-mix(in srgb, var(--deep-3, #142A1F) 85%, transparent); } /* older browsers don't pass vars to ::backdrop */
 .box img { display: block; max-width: 100%; max-height: calc(100dvh - 124px); margin: 0 auto 12px; border-radius: 8px; }
 .box .row { justify-content: space-between; }
 
@@ -245,7 +272,7 @@ a { color: var(--ink); }
 .list .item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; }
 .list .item > .ic { margin-right: 4px; color: var(--deep); }
 
-.skel { border-radius: var(--r-ctl); background: linear-gradient(90deg, var(--tint) 30%, rgba(28, 34, 30, .1) 50%, var(--tint) 70%) 0 0 / 300% 100%; animation: shimmer 1.4s linear infinite; }
+.skel { border-radius: var(--r-ctl); background: linear-gradient(90deg, var(--tint) 30%, color-mix(in srgb, var(--ink) 10%, transparent) 50%, var(--tint) 70%) 0 0 / 300% 100%; animation: shimmer 1.4s linear infinite; }
 @keyframes shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
@@ -274,8 +301,33 @@ a { color: var(--ink); }
 .savebar { position: sticky; bottom: 0; z-index: 1; display: flex; align-items: center; gap: 16px; margin: 0 -20px; padding: 12px 20px max(12px, env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--paper); }
 .savebar .check-row { flex: 1; }
 .savebar .btn { padding: 0 32px; }
+/* design picker: each swatch is drawn in its own preset's colours */
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
+.swatch { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 10px 12px; border: 1.5px solid var(--ctl); border-radius: var(--r-ctl); text-align: left; transition: transform .15s var(--ease); }
+.swatch:active { transform: scale(.98); }
+.swatch[aria-checked=true] { outline: 2px solid var(--deep); outline-offset: 2px; }
+.chips { display: flex; gap: 4px; }
+.chips i { width: 16px; height: 16px; border-radius: 50%; }
+.swatch b { font-size: 24px; font-weight: 400; line-height: 1.2; white-space: nowrap; }
+.swatch small { font-size: 12px; font-weight: 600; }
+.field input[type=color] { width: 100%; padding: 4px; cursor: pointer; }
+.theme-pv { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 20px; border: 1px solid var(--line); border-radius: var(--r-card); background: var(--paper); color: var(--ink); }
+.theme-pv .arch { padding: 56px 20px 28px; }
+.theme-pv .names { font-size: 40px; }
+.theme-pv .kad { max-height: 280px; }
+.theme-pv .btn { align-self: stretch; pointer-events: none; }
+/* photo box over a couple's own frame (admin) */
+.fit { display: flex; flex-direction: column; gap: 8px; }
+.fit-box { position: relative; width: min(320px, 100%); background: var(--tint); touch-action: none; user-select: none; }
+.fit-box img { display: block; width: 100%; height: 100%; pointer-events: none; }
+.fit-win { position: absolute; border: 2px dashed var(--accent); background: color-mix(in srgb, var(--accent) 18%, transparent); cursor: move; }
+.fit-handle { position: absolute; right: -12px; bottom: -12px; width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--card); background: var(--accent); cursor: nwse-resize; }
+.fit-cap { position: absolute; display: grid; place-items: center; font: 400 18px/1.2 var(--names); color: var(--deep); text-align: center; pointer-events: none; }
+.strip-sample { width: 120px; border: 1px solid var(--line); border-radius: 6px; }
+.asset-thumb { height: 72px; max-width: 120px; object-fit: contain; border: 1px solid var(--line); border-radius: 6px; background: var(--tint); }
 .qr { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
 .qr-card { flex: 0 0 140px; width: 140px; aspect-ratio: 1240 / 1748; border-radius: 6px; border: 1px solid var(--line); }
+.qr-open { flex: 0 0 140px; padding: 0; border: 0; background: none; cursor: zoom-in; }
 .btn.off { opacity: .5; pointer-events: none; }
 .rows { display: flex; flex-direction: column; gap: 8px; }
 .row { display: flex; gap: 8px; align-items: center; }

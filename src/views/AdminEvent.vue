@@ -5,6 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import QRCode from 'qrcode'
 import { sb, assetUrl, fmt } from '../lib.js'
 import MapPicker from '../MapPicker.vue'
+import { PRESETS, FONTS, LAYOUTS, resolve, themeVars, loadFont, contrast, textPairs, template, frameProblem, artWarnings, compose, findHole, fitSingle, fitStrip, placeWin } from '../themes.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -26,10 +27,13 @@ function span(v) {
   return { starts_at: s ? s.toISOString() : null, ends_at: e ? e.toISOString() : null }
 }
 
+// every key the Design section edits; empty = use the preset's value
+const NO_THEME = { preset: 'zamrud', deep: '', accent: '', paper: '', font: '', art: '', art_mode: '', frame: '', strip: '', frame_fit: '', strip_fit: '', rights_at: '' }
 const f = ref({
   slug: '', bride: '', groom: '', event_date: '', start_time: '', end_time: '', venue: '', address: '',
   window_start: '', window_end: '', expires_at: '', default_lang: 'ms', published: false, couple_email: '',
   content: { hosts: '', aturcara: [], contacts: [], music_path: '', lat: null, lng: null },
+  theme: { ...NO_THEME },
 })
 const state = ref(isNew ? 'ok' : 'loading') // loading | ok | missing
 const busy = ref(false)
@@ -43,6 +47,7 @@ if (!isNew) {
     data.start_time = toLocal(data.starts_at).slice(11)
     data.end_time = toLocal(data.ends_at).slice(11)
     data.content = { hosts: '', aturcara: [], contacts: [], music_path: '', lat: null, lng: null, ...data.content }
+    data.theme = { ...NO_THEME, ...data.theme }
     for (const k in data) if (data[k] === null) data[k] = ''
     f.value = data
     savedEv.value = { slug: data.slug, bride: data.bride, groom: data.groom, event_date: data.event_date }
@@ -106,6 +111,7 @@ async function save(stay = false) {
     venue: v.venue || null, address: v.address || null, default_lang: v.default_lang, published: v.published,
     couple_email: v.couple_email || null, ...span(v),
     content: { ...v.content, aturcara: v.content.aturcara.filter((a) => a.time || a.item), contacts: v.content.contacts.filter((c) => c.name || c.phone) },
+    theme: Object.fromEntries(Object.entries(v.theme).filter(([, x]) => x)),
   }
   for (const k of TS) row[k] = toIso(v[k])
   if (isNew) delete row.expires_at // DB default: window_end + 3 days
@@ -132,6 +138,104 @@ async function onMusic(e) {
   save(true)
 }
 
+// ---- design: preset, custom colours/font, the couple's artwork and photo frames ----
+FONTS.forEach(loadFont) // the preset swatches show each font
+const th = computed(() => resolve(f.value.theme))
+const presetFont = computed(() => PRESETS.find((p) => p.id === f.value.theme.preset)?.font || PRESETS[0].font)
+const customised = computed(() => ['deep', 'accent', 'paper', 'font'].some((k) => f.value.theme[k]))
+const lowContrast = computed(() => textPairs(th.value).filter(([, a, b]) => contrast(a, b) < 4.5).map(([what]) => what))
+const pickPreset = (id) => Object.assign(f.value.theme, { preset: id, deep: '', accent: '', paper: '', font: '' })
+const ASSETS = [
+  ['art', 'Kad artwork', 'PNG or JPG. Replaces the arch on the invitation and guestbook', null],
+  ['frame', 'Single photo frame', 'any PNG or JPG. A see-through hole becomes the photo window', 'single'],
+  ['strip', 'Photo strip frame', 'any PNG or JPG, used as header and footer; or a PNG from the template', 'strip'],
+]
+const designErr = ref('')
+const designWarn = ref('')
+const rightsOk = ref(false) // ticked per visit; uploads stay locked until Mato confirms
+
+async function onAsset(e, key, layout) {
+  const file = e.target.files[0]
+  e.target.value = ''
+  if (!file) return
+  designErr.value = designWarn.value = ''
+  const bmp = await createImageBitmap(file).catch(() => null)
+  if (!bmp) return (designErr.value = "That file isn't an image this browser can read. Use PNG or JPG.")
+  const c = Object.assign(document.createElement('canvas'), { width: bmp.width, height: bmp.height })
+  const g = c.getContext('2d', { willReadFrequently: true })
+  g.drawImage(bmp, 0, 0)
+  let fit = ''
+  if (layout) {
+    const L = LAYOUTS[layout], k = bmp.width / L.w
+    // a PNG made from the template (right shape, see-through windows) fits as is, at any size
+    const fromTemplate = file.type === 'image/png' && Math.abs(bmp.height / k - L.h) <= L.h * 0.01 && !frameProblem(L, (x, y) => g.getImageData(Math.round(x * k), Math.round(y * k), 1, 1).data[3])
+    if (!fromTemplate && layout === 'single') {
+      // any other design: its see-through hole becomes the photo window, else the design goes behind the photo.
+      // Searched on a small copy: fast, and plenty accurate for placing a photo.
+      const sw = Math.min(360, bmp.width), sh = Math.round((bmp.height * sw) / bmp.width)
+      const s = Object.assign(document.createElement('canvas'), { width: sw, height: sh }).getContext('2d', { willReadFrequently: true })
+      s.drawImage(bmp, 0, 0, sw, sh)
+      fit = fitSingle(sw, sh, findHole(s.getImageData(0, 0, sw, sh).data.filter((_, i) => i % 4 === 3), sw, sh))
+    } else if (!fromTemplate) {
+      // header + footer strip; the gap between them takes the design's middle colour when it's solid
+      const [r, gr, b, a] = g.getImageData(bmp.width >> 1, bmp.height >> 1, 1, 1).data
+      fit = fitStrip(bmp.width, bmp.height, a === 255 ? '#' + [r, gr, b].map((v) => v.toString(16).padStart(2, '0')).join('') : th.value.card)
+    }
+    if (k < 1) designWarn.value = `It's ${bmp.width} px wide, smaller than the ${L.w} px photo, so the frame may look soft. Use a bigger file if you have one.`
+  } else {
+    designWarn.value = artWarnings(file.type, bmp.width, g.getImageData(0, 0, c.width, c.height).data).join(' ')
+  }
+  busy.value = true
+  // new name each time so the CDN never serves the old file
+  const path = `${id}/${key}-${Date.now()}.${file.type === 'image/png' ? 'png' : 'jpg'}`
+  const { error } = await sb.storage.from('assets').upload(path, file, { contentType: file.type })
+  busy.value = false
+  if (error) return (designErr.value = error.message)
+  f.value.theme[key] = path
+  if (layout) f.value.theme[`${key}_fit`] = fit // frame_fit / strip_fit; '' = made from the template
+  f.value.theme.rights_at = new Date().toISOString() // when Mato last confirmed the couple's rights to an upload
+  save(true)
+}
+// ponytail: replaced/removed files stay in the assets bucket, like replaced music
+function dropAsset(key) {
+  f.value.theme[key] = ''
+  if (key !== 'art') f.value.theme[`${key}_fit`] = ''
+  designWarn.value = ''
+  save(true)
+}
+
+// Photo box over a fitted single frame: drag to move, drag the corner to resize (layout px, so it matches the photo)
+const boxStyle = (L, [x, y, w, h]) => ({ left: `${(x / L.w) * 100}%`, top: `${(y / L.h) * 100}%`, width: `${(w / L.w) * 100}%`, height: `${(h / L.h) * 100}%` })
+function dragWin(e, resize) {
+  const fit = f.value.theme.frame_fit, k = fit.w / e.currentTarget.closest('.fit-box').getBoundingClientRect().width
+  const [x, y, w, h] = fit.wins[0], x0 = e.clientX, y0 = e.clientY
+  const clamp = (v, lo, hi) => Math.round(Math.min(hi, Math.max(lo, v)))
+  const move = (ev) => {
+    const dx = (ev.clientX - x0) * k, dy = (ev.clientY - y0) * k
+    f.value.theme.frame_fit = placeWin(fit, resize ? [x, y, clamp(w + dx, 120, fit.w - x), clamp(h + dy, 120, fit.h - y)] : [clamp(x + dx, 0, fit.w - w), clamp(y + dy, 0, fit.h - h), w, h])
+  }
+  addEventListener('pointermove', move)
+  addEventListener('pointerup', () => removeEventListener('pointermove', move), { once: true })
+}
+
+// What a guest's strip will look like, with grey stand-ins for the photos
+const stripSample = ref('')
+watch(() => [f.value.theme.strip, f.value.theme.strip_fit], async ([path, fit]) => {
+  stripSample.value = ''
+  if (!path) return
+  const img = Object.assign(new Image(), { crossOrigin: 'anonymous', src: assetUrl(path) })
+  const r = th.value
+  if (!(await img.decode().then(() => true, () => false))) return
+  await document.fonts.load(`80px "${r.font}"`)
+  const shot = Object.assign(document.createElement('canvas'), { width: 4, height: 3 })
+  const sg = shot.getContext('2d')
+  sg.fillStyle = '#9AA39C'
+  sg.fillRect(0, 0, 4, 3)
+  const c = compose(fit || LAYOUTS.strip, [shot, shot, shot], { overlay: img, bg: r.card, fg: r.deep, sub: r.mut }, { couple: `${f.value.bride} & ${f.value.groom}`, date: f.value.event_date, font: r.font })
+  if (path === f.value.theme.strip) stripSample.value = c.toDataURL('image/jpeg', 0.7)
+}, { immediate: true })
+const dlTemplate = (name) => Object.assign(document.createElement('a'), { href: template(name), download: `sepatah-${name}-template.png` }).click()
+
 // a searched place replaces the address; a map click only fills it when empty, so typed text survives fine-tuning
 function onPlace(addr, fromSearch) {
   if (fromSearch || !f.value.address) f.value.address = addr
@@ -145,6 +249,7 @@ const host = location.host
 const savedEv = ref(null) // { slug, bride, groom, event_date }
 const qrUrl = computed(() => savedEv.value && `${origin}/${savedEv.value.slug}/tetamu`)
 const qr = ref(null) // { svg, card }
+const qrBox = ref(null)
 const qrErr = ref('')
 watch(savedEv, async (ev) => {
   qr.value = null
@@ -294,6 +399,70 @@ async function drawCard(ev, url) {
       </section>
 
       <section class="fs">
+        <header><h2>Design</h2><p class="hint left">Colours, font and the couple's artwork. Used on the invitation, guestbook, photo frames and couple gallery.</p></header>
+        <div class="fs-body">
+          <div class="swatches" role="radiogroup" aria-label="Preset">
+            <button v-for="p in PRESETS" :key="p.id" type="button" class="swatch" role="radio" :aria-checked="f.theme.preset === p.id" :style="{ background: p.paper, color: p.mut }" @click="pickPreset(p.id)">
+              <span class="chips"><i :style="{ background: p.deep }"></i><i :style="{ background: p.accent }"></i></span>
+              <b :style="{ fontFamily: `'${p.font}', serif`, color: p.deep }">A &amp; H</b>
+              <small>{{ p.name }}</small>
+            </button>
+          </div>
+          <div class="cols c3">
+            <label class="field"><span>Main colour</span><input type="color" :value="th.deep" @input="f.theme.deep = $event.target.value" /></label>
+            <label class="field"><span>Accent</span><input type="color" :value="th.accent" @input="f.theme.accent = $event.target.value" /></label>
+            <label class="field"><span>Paper</span><input type="color" :value="th.paper" @input="f.theme.paper = $event.target.value" /></label>
+          </div>
+          <label class="field"><span>Names font</span>
+            <select v-model="f.theme.font"><option value="">{{ presetFont }} (preset)</option><option v-for="x in FONTS" :key="x" :value="x">{{ x }}</option></select>
+          </label>
+          <button v-if="customised" type="button" class="linkbtn" style="align-self: start" @click="pickPreset(f.theme.preset)">Reset to preset</button>
+          <p v-for="w in lowContrast" :key="w" class="err" role="alert"><svg class="ic sm"><use href="#i-alert" /></svg>{{ w }} is hard to read (under 4.5:1). Pick a darker or lighter colour.</p>
+          <div class="theme-pv" :style="themeVars(f.theme)" aria-label="Preview">
+            <img v-if="f.theme.art && f.theme.art_mode === 'kad'" class="kad" :src="assetUrl(f.theme.art)" alt="Kad artwork" />
+            <div v-else-if="f.theme.art" class="framed">
+              <img :src="assetUrl(f.theme.art)" alt="" />
+              <div><div class="eyebrow">Walimatul Urus</div><div class="names"><span>{{ f.bride || 'Aina' }}</span><span class="amp">&amp;</span><span>{{ f.groom || 'Hakim' }}</span></div><p class="lede">{{ f.event_date || 'Tarikh majlis' }}</p></div>
+            </div>
+            <div v-else class="arch"><div class="names"><span>{{ f.bride || 'Aina' }}</span><span class="amp">&amp;</span><span>{{ f.groom || 'Hakim' }}</span></div></div>
+            <span class="btn primary">Hantar jawapan</span>
+          </div>
+          <template v-if="!isNew">
+            <label class="check-row"><input v-model="rightsOk" type="checkbox" /> The couple confirmed they made or paid for this artwork. Not from Google or a watermarked preview.</label>
+            <div v-for="[key, label, hint, lay] in ASSETS" :key="key" class="field">
+              <span>{{ label }} <em>({{ hint }})</em></span>
+              <div v-if="f.theme[key]" class="row">
+                <img class="asset-thumb" :src="assetUrl(f.theme[key])" :alt="label" />
+                <button type="button" class="btn sm" :disabled="busy" @click="dropAsset(key)">Remove</button>
+              </div>
+              <div class="row">
+                <input type="file" accept="image/png,image/jpeg" :aria-label="`${f.theme[key] ? 'Replace' : 'Upload'} ${label}`" :disabled="busy || !rightsOk" @change="onAsset($event, key, lay)" />
+                <button v-if="lay" type="button" class="btn sm" @click="dlTemplate(lay)">Template</button>
+              </div>
+              <div v-if="key === 'frame' && f.theme.frame && f.theme.frame_fit" class="fit">
+                <div class="fit-box" :style="{ aspectRatio: `${f.theme.frame_fit.w} / ${f.theme.frame_fit.h}` }">
+                  <img :src="assetUrl(f.theme.frame)" alt="" />
+                  <div v-if="f.theme.frame_fit.cap" class="fit-cap" :style="boxStyle(f.theme.frame_fit, [0, f.theme.frame_fit.cap[0], f.theme.frame_fit.w, f.theme.frame_fit.cap[1]])">{{ f.bride || 'Aina' }} &amp; {{ f.groom || 'Hakim' }}</div>
+                  <div class="fit-win" :style="boxStyle(f.theme.frame_fit, f.theme.frame_fit.wins[0])" @pointerdown.prevent="dragWin($event, false)"><span class="fit-handle" @pointerdown.stop.prevent="dragWin($event, true)"></span></div>
+                </div>
+                <label class="check-row"><input type="checkbox" :checked="!!f.theme.frame_fit.cap" @change="f.theme.frame_fit = placeWin(f.theme.frame_fit, f.theme.frame_fit.wins[0], $event.target.checked)" /> Names and date under the photo</label>
+                <p class="hint left">{{ f.theme.frame_fit.under ? "No see-through hole in this design, so it goes behind the photo. Drag the box onto the design's empty area, and drag its corner to resize. Save when done." : "Found the see-through hole: guests' photos fill it. Drag the box to fine-tune if needed, then Save." }}</p>
+              </div>
+              <img v-if="key === 'strip' && stripSample" class="strip-sample" :src="stripSample" alt="Sample strip with grey stand-in photos" />
+              <select v-if="key === 'art' && f.theme.art" v-model="f.theme.art_mode" aria-label="Artwork type">
+                <option value="">Frame only: we write the names inside</option>
+                <option value="kad">Full kad: the names are already in the image</option>
+              </select>
+            </div>
+            <p v-if="designWarn" class="hint left" role="status">{{ designWarn }}</p>
+            <p v-if="designErr" class="err" role="alert"><svg class="ic sm"><use href="#i-alert" /></svg>{{ designErr }}</p>
+            <p v-if="f.theme.rights_at" class="hint left">Rights last confirmed {{ when(f.theme.rights_at) }}.</p>
+          </template>
+          <p v-else class="hint left">Save the event first, then upload the couple's artwork and frames.</p>
+        </div>
+      </section>
+
+      <section class="fs">
         <header><h2>Majlis</h2><p class="hint left">When and where. Guests get Google Maps and Waze buttons.</p></header>
         <div class="fs-body">
           <div class="cols c3">
@@ -346,8 +515,22 @@ async function drawCard(ev, url) {
           </div>
           <p v-if="isNew" class="hint left">Gallery is deleted 3 days after the QR closes. You can change it after saving.</p>
           <div v-if="qrUrl" class="qr">
-            <img v-if="qr" class="qr-card" :src="qr.card" :alt="`Table card, scans open ${qrUrl}`" />
+            <button v-if="qr" type="button" class="qr-open" aria-label="View table card" @click="qrBox.showModal()">
+              <img class="qr-card" :src="qr.card" :alt="`Table card, scans open ${qrUrl}`" />
+            </button>
             <div v-else class="skel qr-card"></div>
+            <dialog ref="qrBox" class="box" @click.self="qrBox.close()">
+              <template v-if="qr">
+                <img :src="qr.card" :alt="`Table card, scans open ${qrUrl}`" />
+                <div class="row">
+                  <div class="row" style="flex-wrap: wrap">
+                    <a class="btn sm" :href="qr.card" :download="`${savedEv.slug}-kad-meja.png`">Table card (PNG)</a>
+                    <a class="btn sm" :href="`data:image/svg+xml;charset=utf-8,${encodeURIComponent(qr.svg)}`" :download="`${savedEv.slug}-qr.svg`">QR only (SVG)</a>
+                  </div>
+                  <button type="button" class="back" aria-label="Close" @click="qrBox.close()"><svg class="ic sm"><use href="#i-x" /></svg></button>
+                </div>
+              </template>
+            </dialog>
             <div class="stack">
               <p class="hint left">Table card, A6 at 300 dpi. Scans open {{ qrUrl }}.</p>
               <p v-if="qrErr" class="err" role="alert"><svg class="ic sm"><use href="#i-alert" /></svg>{{ qrErr }}</p>

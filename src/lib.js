@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { createClient } from '@supabase/supabase-js'
+import { applyTheme } from './themes.js'
 
 const URL_ = import.meta.env.VITE_SUPABASE_URL
 const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -66,7 +67,10 @@ export function useEvent(slug, onLoad) {
     const { data, error } = await sb.from('public_events').select().eq('slug', slug).maybeSingle()
     ev.value = data
     state.value = error ? 'error' : data ? 'ok' : 'missing'
-    if (data) onLoad?.(data)
+    if (data) {
+      applyTheme(data.theme)
+      onLoad?.(data)
+    }
   }
   load()
   return { ev, state, load }

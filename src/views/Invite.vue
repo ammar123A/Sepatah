@@ -13,6 +13,8 @@ const slug = useRoute().params.slug
 const { ev, state, load } = useEvent(slug, (e) => initLang(e.default_lang))
 const couple = computed(() => ev.value && `${ev.value.bride} & ${ev.value.groom}`)
 const c = computed(() => ev.value?.content || {})
+const art = computed(() => ev.value?.theme?.art && assetUrl(ev.value.theme.art)) // the couple's own design
+const kadMode = computed(() => ev.value?.theme?.art_mode === 'kad') // the image already has the names; otherwise it's a frame we write in
 
 const screen = ref('cover') // cover | main | wish | done
 function go(s) {
@@ -120,7 +122,8 @@ onBeforeUnmount(() => {
         <div class="eyebrow">{{ t('coverTo') }}</div>
         <button class="env" :class="{ open: opening }" :aria-label="t('open')" @click="openInvite">
           <span class="env-back"></span>
-          <span class="env-card">
+          <span class="env-card" :class="{ fr: art && !kadMode }">
+            <img v-if="art" :src="art" alt="" />
             <small>{{ t('inviteEyebrow') }}</small>
             <b>{{ ev.bride }} <i>&amp;</i> {{ ev.groom }}</b>
             <small>{{ dateStr(ev.event_date) }}</small>
@@ -143,7 +146,21 @@ onBeforeUnmount(() => {
       </main>
 
       <main v-else class="screen invite">
-        <div class="hero arch">
+        <div v-if="art && kadMode" class="hero"><img class="kad" :src="art" :alt="t('kadAlt', { couple })" /></div>
+        <div v-else-if="art" class="hero">
+          <p v-if="c.hosts" class="txt" style="white-space: pre-line"><b>{{ c.hosts }}</b></p>
+          <p v-if="c.hosts" class="lede">{{ t('inviteIntro') }}</p>
+          <div class="framed">
+            <img :src="art" alt="" />
+            <div>
+              <div class="eyebrow">{{ t('inviteEyebrow') }}</div>
+              <div class="names"><span>{{ ev.bride }}</span><span class="amp">&amp;</span><span>{{ ev.groom }}</span></div>
+              <div class="orn"></div>
+              <p class="lede">{{ dateStr(ev.event_date) }}</p>
+            </div>
+          </div>
+        </div>
+        <div v-else class="hero arch">
           <div class="eyebrow">{{ t('inviteEyebrow') }}</div>
           <p v-if="c.hosts" class="txt" style="white-space: pre-line"><b>{{ c.hosts }}</b></p>
           <p v-if="c.hosts" class="lede">{{ t('inviteIntro') }}</p>

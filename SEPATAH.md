@@ -46,7 +46,7 @@ Redesigned 2026-10-05, then twice on 2026-10-12. The last pass built the UI from
 
 | Token | Value |
 |---|---|
-| Paper / card | `#F2EDE3` / `#FBF8F2`; the page has a handmade-paper texture (watercolour mottle + grain). The envelope cover has flower bouquets (`public/sprig.svg`) on two corners. |
+| Paper / card | `#F2EDE3` / `#FBF8F2`; the page has a handmade-paper texture (watercolour mottle + grain). The envelope cover has flower bouquets on two corners, drawn in each wedding's colours (`bouquet()` in `src/themes.js`). |
 | Ink / muted | `#1C221E` / `#5C635D` |
 | Deep green (envelope, hero arch, camera screens, selected states, focus) | `#1F3A2D`, `#2A4C3B`, `#142A1F` |
 | Accent, main action + wax seal | `#C4472D` (hover `#A93A23`) |
@@ -57,7 +57,8 @@ Redesigned 2026-10-05, then twice on 2026-10-12. The last pass built the UI from
 - Controls: 12 px radius, 52 px tall (46 in admin), 1.5 px borders, deep-green focus ring. Cards have a 20 px radius.
 - Cover is a sealed envelope: tap → seal pops, flap opens in 3D, card slides out, then the invitation (about 1.6 s, instant with reduced motion).
 - Motion: envelope, then the arch draws up and the names ink in. Countdown digits roll. No ticker and no per-section scroll reveals. Press `scale(.98)`. Respect `prefers-reduced-motion`.
-- Polaroid frames: 326 wide, padding 14 or 22, camera area 320 high, caption area 84 high.
+- Wedding designs (`src/themes.js`): every colour and the names font are tokens, so each wedding sets its own through `events.theme` = `{ preset, deep?, accent?, paper?, font?, art?, frame?, strip? }`. There are 10 presets (Zamrud is the original look), optional custom colours and font, and the couple's artwork, which replaces the arch. Artwork is either **frame only** (the default: the names, date and eyebrow are written live inside the frame, so BM/EN and edits keep working) or a **full kad** (`art_mode: 'kad'`: the names are already in the image, which is shown as-is). Uploads unlock only after Mato ticks that the couple made or paid for the artwork (no Google images or watermarked previews), and `rights_at` records when. Admin rejects photo frames whose windows aren't transparent, and warns about low-res kad images and PNGs with fake (baked-in checkerboard) transparency. Files live in the `assets` bucket. Mato sets this in admin → Design. The theme applies to the invitation, guestbook, recorder and couple gallery.
+- Photo frames: single 1080x1350 or strip 1080x3240 (3 shots, 3-second countdown each), geometry in `LAYOUTS`. Built-in frames are drawn in the wedding's colours. A couple's own frame can be a PNG made from the admin "Template" download (photo windows left transparent, any size with the same shape), or **any PNG/JPG**. For a single photo, admin finds a see-through hole and uses it as the photo window. Without a hole, the design goes behind the photo and Mato drags the photo box into place. For a strip, the design's top and bottom become the header and footer, with three photos between. The fitted layout is saved as `theme.frame_fit` / `strip_fit`.
 - Sample couple "Aina & Hakim", placeholders like `[Tarikh majlis]`. Replace with `events` data.
 
 Mato's standing rules for every UI build (apply them):
