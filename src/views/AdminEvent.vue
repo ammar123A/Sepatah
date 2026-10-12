@@ -165,7 +165,7 @@ async function drawCard(ev, url) {
   const [code, icon] = await Promise.all([
     QRCode.toCanvas(document.createElement('canvas'), url, { errorCorrectionLevel: 'M', margin: 4, width: 800 }),
     new Promise((ok, no) => Object.assign(new Image(), { onload() { ok(this) }, onerror: () => no(new Error('logo did not load')), src: '/favicon.svg' })),
-    ...['400 10px "Young Serif"', '10px "Great Vibes"', '400 10px Nunito', '700 10px Nunito'].map((f) => document.fonts.load(f)),
+    ...['400 10px "Young Serif"', '10px Gloock', '400 10px Figtree', '700 10px Figtree'].map((f) => document.fonts.load(f)),
   ])
   const c = Object.assign(document.createElement('canvas'), { width: W, height: H })
   const g = c.getContext('2d')
@@ -180,17 +180,17 @@ async function drawCard(ev, url) {
     g.fillText(s, cx, y)
   }
   const date = new Date(ev.event_date + 'T00:00').toLocaleDateString('ms-MY', { day: 'numeric', month: 'long', year: 'numeric' })
-  text('Buku tetamu video', '#px "Great Vibes"', 76, '#C4472D', 190)
+  text('Buku tetamu video', '#px "Young Serif"', 56, '#C4472D', 190)
   // full names (binti/bin) go on two lines rather than shrinking to nothing
   const names = `${ev.bride} & ${ev.groom}`
-  g.font = '130px "Great Vibes"'
+  g.font = '110px Gloock'
   const one = g.measureText(names).width <= W - 200
-  if (one) text(names, '#px "Great Vibes"', 130, '#1F3A2D', 320)
+  if (one) text(names, '#px Gloock', 110, '#1F3A2D', 320)
   else {
-    text(ev.bride, '#px "Great Vibes"', 100, '#1F3A2D', 282)
-    text(`& ${ev.groom}`, '#px "Great Vibes"', 100, '#1F3A2D', 372)
+    text(ev.bride, '#px Gloock', 88, '#1F3A2D', 282)
+    text(`& ${ev.groom}`, '#px Gloock', 88, '#1F3A2D', 372)
   }
-  text(date, '700 #px Nunito', 38, '#5C635D', one ? 392 : 436)
+  text(date, '700 #px Figtree', 38, '#5C635D', one ? 392 : 436)
   // rounded corners only cut into the quiet zone, never the code
   g.save()
   g.beginPath()
@@ -198,9 +198,9 @@ async function drawCard(ev, url) {
   g.clip()
   g.drawImage(code, cx - 400, 470, 800, 800)
   g.restore()
-  text('Imbas untuk rakam ucapan video', '700 #px Nunito', 50, '#1C221E', 1380)
-  text('Scan to record a video wish', '#px "Great Vibes"', 60, '#5C635D', 1442)
-  text('Dibuka semasa majlis sahaja · Open during the event only', '400 #px Nunito', 30, '#5C635D', 1510)
+  text('Imbas untuk rakam ucapan video', '700 #px Figtree', 50, '#1C221E', 1380)
+  text('Scan to record a video wish', '#px "Young Serif"', 44, '#5C635D', 1442)
+  text('Dibuka semasa majlis sahaja · Open during the event only', '400 #px Figtree', 30, '#5C635D', 1510)
   // logo lockup: square icon + "sepatah." (the dot is the only accent on the card)
   g.font = '400 46px "Young Serif"'
   const wWord = g.measureText('sepatah').width, wDot = g.measureText('.').width

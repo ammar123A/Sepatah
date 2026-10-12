@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+<!-- bouquet centred at (110 95); stems trail to the bottom left. Palette: deep greens, sage, blush tints of the terracotta accent -->
+<defs>
+<path id="l" d="M0 0C8-10 21-10 30 0C21 10 8 10 0 0Z"/>
+<g id="p"><ellipse rx="7" ry="10" cy="-9"/><ellipse rx="7" ry="10" cy="-9" transform="rotate(72)"/><ellipse rx="7" ry="10" cy="-9" transform="rotate(144)"/><ellipse rx="7" ry="10" cy="-9" transform="rotate(216)"/><ellipse rx="7" ry="10" cy="-9" transform="rotate(288)"/></g>
+<g id="f"><use href="#p" fill="#E8A48F"/><use href="#p" fill="#D2735A" fill-opacity=".35" transform="scale(.55)"/><circle r="3.4" fill="#C9A15B"/></g>
+<g id="g"><use href="#p" fill="#F7EBE0" stroke="#E2B9A6" stroke-width=".8"/><use href="#p" fill="#E8A48F" fill-opacity=".45" transform="scale(.5)"/><circle r="3" fill="#C9A15B"/></g>
+</defs>
+<g fill="none" stroke="#2A4C3B" stroke-width="1.6" stroke-linecap="round">
+<path d="M104 104C80 130 52 160 22 188"/>
+<path d="M98 108C76 116 52 126 30 146"/>
+<path d="M106 110C98 136 86 160 72 184"/>
+</g>
+<g fill="#2A4C3B">
+<use href="#l" transform="translate(80.5 89.8) rotate(-170)"/>
+<use href="#l" transform="translate(104.8 65.5) rotate(-100)"/>
+<use href="#l" transform="translate(138.2 84.7) rotate(-20)"/>
+<use href="#l" transform="translate(125 121) rotate(60)"/>
+<use href="#l" transform="translate(52 160) rotate(-150) scale(.8)"/>
+<use href="#l" transform="translate(84 152) rotate(110) scale(.75)"/>
+</g>
+<g fill="#7E9682">
+<use href="#l" transform="translate(87 75.7) rotate(-140)"/>
+<use href="#l" transform="translate(125 69) rotate(-60)"/>
+<use href="#l" transform="translate(138.2 105.3) rotate(20)"/>
+<use href="#l" transform="translate(84 110) rotate(150)"/>
+<use href="#l" transform="translate(48 134) rotate(-120) scale(.75)"/>
+<use href="#l" transform="translate(40 172) rotate(170) scale(.7)"/>
+</g>
+<use href="#g" transform="translate(88 80) scale(1.05) rotate(15)"/>
+<use href="#f" transform="translate(132 78) scale(1.15) rotate(30)"/>
+<use href="#g" transform="translate(128 113) scale(.95) rotate(50)"/>
+<use href="#f" transform="translate(96 114) scale(.9) rotate(5)"/>
+<use href="#f" transform="translate(110 95) scale(1.45)"/>
+<g fill="#E8A48F"><circle cx="152" cy="58" r="4.5"/><circle cx="68" cy="68" r="4"/><circle cx="156" cy="126" r="3.5"/><circle cx="30" cy="146" r="3.5"/><circle cx="72" cy="184" r="3"/></g>
+</svg>

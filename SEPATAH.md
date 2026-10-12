@@ -42,19 +42,21 @@ Recording details to keep:
 
 ## 3. Design tokens
 
-Redesigned 2026-10-05, then 2026-10-12: livelier fonts and confetti, original palette kept. Source of truth is the `:root` block in `src/style.css`.
+Redesigned 2026-10-05, then twice on 2026-10-12. The last pass built the UI from the logo's arch and brand fonts and kept the original palette. Source of truth is the `:root` block in `src/style.css`.
 
 | Token | Value |
 |---|---|
-| Paper / card | `#F2EDE3` / `#FBF8F2`, with confetti pattern + soft green/terracotta glow |
+| Paper / card | `#F2EDE3` / `#FBF8F2`; the page has a handmade-paper texture (watercolour mottle + grain). The envelope cover has flower bouquets (`public/sprig.svg`) on two corners. |
 | Ink / muted | `#1C221E` / `#5C635D` |
-| Deep green (envelope, countdown, ticker, camera screens, selected states) | `#1F3A2D`, `#2A4C3B`, `#142A1F` |
+| Deep green (envelope, hero arch, camera screens, selected states, focus) | `#1F3A2D`, `#2A4C3B`, `#142A1F` |
 | Accent, main action + wax seal | `#C4472D` (hover `#A93A23`) |
 | Error | `#A3291B` |
 
-- Fonts: Great Vibes (couple names, eyebrows, flourishes), Fredoka 500/600 (headings, countdown digits), Nunito 400–800 (UI). Young Serif stays for the logo wordmark only.
+- Fonts (all from the logo handoff except the UI face): Gloock for couple names only, Young Serif for the wordmark, headings and countdown digits, Figtree 400–700 for UI. Scale 14/16/18/22/28/36, with names at 52–72.
+- Signature: the logo's arch. The invitation and guestbook heroes are a deep-green arch with the names in paper colour, status badges are small arch outlines, and `.orn` is a tiny arch divider. Sections after the hero are left-aligned on plain paper. RSVP sits on a card.
+- Controls: 12 px radius, 52 px tall (46 in admin), 1.5 px borders, deep-green focus ring. Cards have a 20 px radius.
 - Cover is a sealed envelope: tap → seal pops, flap opens in 3D, card slides out, then the invitation (about 1.6 s, instant with reduced motion).
-- Motion: names ink in (blur + rise), arch draws up, name ticker, sections reveal on scroll, countdown digits roll. 56 px pill buttons, press `scale(.97)`. Respect `prefers-reduced-motion`.
+- Motion: envelope, then the arch draws up and the names ink in. Countdown digits roll. No ticker and no per-section scroll reveals. Press `scale(.98)`. Respect `prefers-reduced-motion`.
 - Polaroid frames: 326 wide, padding 14 or 22, camera area 320 high, caption area 84 high.
 - Sample couple "Aina & Hakim", placeholders like `[Tarikh majlis]`. Replace with `events` data.
 

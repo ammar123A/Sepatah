@@ -57,9 +57,6 @@ const opening = ref(false)
 const leaving = ref(false)
 const initials = computed(() => ev.value && `${ev.value.bride[0]}${ev.value.groom[0]}`)
 
-// Sections fade up as they scroll into view
-const io = new IntersectionObserver((es) => es.forEach((e) => e.isIntersecting && (e.target.classList.add('in'), io.unobserve(e.target))), { threshold: 0.15 })
-const vReveal = { mounted: (el) => (el.classList.add('rv'), io.observe(el)), unmounted: (el) => io.unobserve(el) }
 const pad = (n) => String(n).padStart(2, '0')
 
 // ---- music: browsers only allow play() after a tap, which opening the envelope is ----
@@ -85,7 +82,6 @@ watch(screen, (s) => s === 'wish' && audio?.pause()) // or the recorder picks it
 
 onBeforeUnmount(() => {
   clearInterval(timer)
-  io.disconnect()
   audio?.pause()
   document.removeEventListener('visibilitychange', onHide)
 })
@@ -153,20 +149,17 @@ onBeforeUnmount(() => {
           <p v-if="c.hosts" class="lede">{{ t('inviteIntro') }}</p>
           <div class="names"><span>{{ ev.bride }}</span><span class="amp">&amp;</span><span>{{ ev.groom }}</span></div>
           <div class="orn"></div>
+          <p class="lede">{{ dateStr(ev.event_date) }}</p>
         </div>
 
-        <div class="ticker" aria-hidden="true">
-          <div><span v-for="i in 6" :key="i">{{ couple }} &nbsp;·&nbsp; {{ dateStr(ev.event_date) }}</span></div>
-        </div>
-
-        <div v-if="target > now" v-reveal class="count">
+        <div v-if="target > now" class="count">
           <div v-for="(n, i) in left(target, now)" :key="i">
             <span class="roll"><Transition name="roll"><b :key="n">{{ pad(n) }}</b></Transition></span>
             <small>{{ t(UNITS[i]) }}</small>
           </div>
         </div>
 
-        <section v-reveal class="sec">
+        <section class="sec">
           <h2>{{ t('whenWhere') }}</h2>
           <p class="big">{{ dateStr(ev.event_date) }}<template v-if="time"><br />{{ time }}</template></p>
           <p v-if="ev.venue || ev.address" class="txt" style="white-space: pre-line"><b v-if="ev.venue">{{ ev.venue }}</b>{{ ev.venue && ev.address ? '\n' : '' }}{{ ev.address }}</p>
@@ -178,14 +171,14 @@ onBeforeUnmount(() => {
           <a class="btn sm" :href="calHref" :download="`${slug}.ics`"><svg class="ic sm"><use href="#i-calendar" /></svg>{{ t('addCal') }}</a>
         </section>
 
-        <section v-if="c.aturcara?.length" v-reveal class="sec">
+        <section v-if="c.aturcara?.length" class="sec">
           <h2>{{ t('agenda') }}</h2>
           <dl class="agenda">
             <template v-for="(a, i) in c.aturcara" :key="i"><dt>{{ a.time }}</dt><dd>{{ a.item }}</dd></template>
           </dl>
         </section>
 
-        <section id="rsvp" v-reveal class="sec">
+        <section id="rsvp" class="sec">
           <h2>{{ t('rsvp') }}</h2>
           <template v-if="rsvpDone">
             <p class="txt">{{ t('rsvpDone') }}</p>
@@ -218,7 +211,7 @@ onBeforeUnmount(() => {
           </form>
         </section>
 
-        <section v-if="c.contacts?.length" v-reveal class="sec">
+        <section v-if="c.contacts?.length" class="sec">
           <h2>{{ t('contact') }}</h2>
           <ul class="list">
             <li v-for="(p, i) in c.contacts" :key="i" class="item">

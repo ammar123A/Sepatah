@@ -42,7 +42,7 @@ const err = ref('')
 async function shoot() {
   const v = camEl.value
   if (!v?.videoWidth || sending.value) return
-  await Promise.all([document.fonts.load('36px "Great Vibes"'), document.fonts.load('800 11px Nunito')])
+  await Promise.all([document.fonts.load('26px Gloock'), document.fonts.load('600 13px Figtree')])
   const k = 3, f = FR[frame.value], W = 326, camH = 320, camW = W - f.p * 2, H = f.p * 2 + camH + 84
   const c = document.createElement('canvas')
   c.width = W * k
@@ -62,14 +62,13 @@ async function shoot() {
   g.textAlign = 'center'
   g.fillStyle = f.fg
   // shrink long couple names to fit the caption
-  let size = 36
-  do g.font = `${size}px "Great Vibes", cursive`
-  while (g.measureText(couple.value).width > W - 32 && --size > 16)
-  g.fillText(couple.value, W / 2, f.p + camH + 44)
+  let size = 26
+  do g.font = `${size}px Gloock, Georgia, serif`
+  while (g.measureText(couple.value).width > W - 32 && --size > 14)
+  g.fillText(couple.value, W / 2, f.p + camH + 42)
   g.fillStyle = f.sub
-  g.font = '800 11px Nunito, sans-serif'
-  g.letterSpacing = '1.8px'
-  g.fillText(date.value.toUpperCase(), W / 2, f.p + camH + 68)
+  g.font = '600 13px Figtree, sans-serif'
+  g.fillText(date.value, W / 2, f.p + camH + 66)
   const blob = await new Promise((res) => c.toBlob(res, 'image/jpeg', 0.9))
 
   sending.value = true
@@ -128,7 +127,7 @@ async function shoot() {
         </template>
 
         <template v-else-if="screen === 'landing'">
-          <div class="hero">
+          <div class="hero arch">
             <div class="eyebrow">{{ t('eyebrow') }}</div>
             <div class="names"><span>{{ ev.bride }}</span><span class="amp">&amp;</span><span>{{ ev.groom }}</span></div>
             <div class="orn"><i></i></div>
