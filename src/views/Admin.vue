@@ -44,7 +44,7 @@ async function logout() {
 
     <div v-if="state === 'loading'" class="rows"><div class="skel" style="height: 52px" v-for="i in 3" :key="i"></div></div>
 
-    <form v-else-if="state === 'login'" class="stack" style="max-width: 360px" @submit.prevent="login">
+    <form v-else-if="state === 'login'" class="stack login" @submit.prevent="login">
       <h1 class="h1">Admin</h1>
       <label class="field"><span>Email</span><input v-model="email" type="email" autocomplete="username" required /></label>
       <label class="field"><span>Password</span><input v-model="password" type="password" autocomplete="current-password" required /></label>
@@ -72,7 +72,7 @@ async function logout() {
       <ul v-else class="list">
         <li v-for="(e, i) in events" :key="e.id">
           <RouterLink :to="`/admin/e/${e.id}`" :style="{ animationDelay: i * 50 + 'ms' }">
-            <span>{{ e.bride }} &amp; {{ e.groom }} <small>/{{ e.slug }}</small></span>
+            <span><b class="ev-names">{{ e.bride }} &amp; {{ e.groom }}</b><br /><small>/{{ e.slug }}</small></span>
             <span class="row"><small>{{ e.event_date }}</small><span class="tag" :class="{ on: e.published }">{{ e.published ? 'Published' : 'Draft' }}</span></span>
           </RouterLink>
         </li>

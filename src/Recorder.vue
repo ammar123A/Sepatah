@@ -4,11 +4,12 @@ import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { pickMime, sendMedia, camera, fmt } from './lib.js'
 import { t, LangToggle } from './i18n.js'
 
-const props = defineProps({ slug: String, source: { type: String, default: 'event' } })
+const props = defineProps({ slug: String, source: { type: String, default: 'event' }, couple: String, art: String, artSize: Array })
 const emit = defineEmits(['back', 'done'])
 
 const MAX = 30
 const C = 276.46 // ring circumference, r = 44
+const showDebug = location.search.includes('debug') // format/bitrate panel for testing on real phones: add ?debug to the URL
 const phase = ref('record') // record | review
 const { el: camEl, ok: camOk, err: camErr, open: openCam, stop: stopCam, flip, facing, stream } = camera()
 
@@ -119,7 +120,7 @@ onBeforeUnmount(() => clip.value && URL.revokeObjectURL(clip.value.url))
 </script>
 
 <template>
-  <div class="shell" :class="{ dark: phase === 'record' }">
+  <div class="shell">
     <div class="app">
       <header class="bar">
         <button class="back" :aria-label="t('back')" :disabled="sending" @click="back">
@@ -131,6 +132,9 @@ onBeforeUnmount(() => clip.value && URL.revokeObjectURL(clip.value.url))
 
       <main :key="phase" class="screen">
         <template v-if="phase === 'record'">
+          <!-- the wedding's design around the camera: their names, then their own frame artwork around it, or else the arch and their bouquet -->
+          <p v-if="couple" class="rec-head"><span>{{ t('wishFor') }}</span><b>{{ couple }}</b></p>
+          <div class="cam-frame" :class="{ art }" :style="art && { '--art': `url(${art})`, '--ar': artSize ? artSize[0] / artSize[1] : .71 }">
           <div class="cam">
             <video ref="camEl" class="feed" :class="{ rear: facing !== 'user' }" autoplay muted playsinline v-show="camOk"></video>
             <!-- hidden while recording: swapping the stream would cut the recording -->
@@ -143,6 +147,7 @@ onBeforeUnmount(() => clip.value && URL.revokeObjectURL(clip.value.url))
             </div>
             <div v-if="camOk && rec === 'recording'" class="cam-top"><i class="dot"></i>{{ t('rec') }}</div>
             <div v-if="camOk" class="cam-bottom"><p class="prompt">{{ t('prompt') }}</p></div>
+          </div>
           </div>
           <p v-if="tooLong" class="err" role="alert"><svg class="ic sm"><use href="#i-alert" /></svg>{{ t('tooLong') }}</p>
           <div class="rec-wrap">
@@ -169,7 +174,7 @@ onBeforeUnmount(() => clip.value && URL.revokeObjectURL(clip.value.url))
           <p class="hint left">{{ t('consent') }}</p>
           <p v-if="err" class="err" role="alert"><svg class="ic sm"><use href="#i-alert" /></svg>{{ t('upFail') }}</p>
           <div v-if="sending" class="progress"><i :style="{ width: pct * 100 + '%' }"></i></div>
-          <details class="debug">
+          <details v-if="showDebug" class="debug">
             <summary>{{ t('debug') }}</summary>
             <pre>{{ info }}</pre>
             <button class="btn sm" @click="copyInfo">{{ copied ? t('copied') : t('copy') }}</button>

@@ -1,0 +1,11 @@
+{
+ "page": "dist/index.html",
+ "url": null,
+ "root": "dist",
+ "kind": "service",
+ "category": "undangan perkahwinan digital",
+ "primary": "Tanya tarikh di WhatsApp",
+ "rounds": 3,
+ "start": "2026-11-14T15:26:43.270Z",
+ "by": "gate.mjs --start"
+}

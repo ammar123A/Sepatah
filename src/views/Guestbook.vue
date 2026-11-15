@@ -4,17 +4,19 @@ import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import { useEvent, sendMedia, camera, assetUrl } from '../lib.js'
 import { t, initLang, dateStr, timeStr, LangToggle } from '../i18n.js'
-import { LAYOUTS, resolve, frameStyles, compose } from '../themes.js'
+import { LAYOUTS, resolve, frameStyles, compose, kadBox } from '../themes.js'
 import Recorder from '../Recorder.vue'
 
 const slug = useRoute().params.slug
 const { ev, state, load } = useEvent(slug, (e) => {
   initLang(e.default_lang)
+  document.title = `${e.bride} & ${e.groom} | Sepatah`
   loadOverlays(e.theme)
 })
 const couple = computed(() => ev.value && `${ev.value.bride} & ${ev.value.groom}`)
 const date = computed(() => ev.value && dateStr(ev.value.event_date))
 const art = computed(() => ev.value?.theme?.art && assetUrl(ev.value.theme.art)) // the couple's own design
+const artSize = computed(() => ev.value?.theme?.art_size || null)
 const kadMode = computed(() => ev.value?.theme?.art_mode === 'kad') // the image already has the names; otherwise it's a frame we write in
 
 // same rule as upload_open('event') on the server; ticks so the landing flips open/closed on its own
@@ -40,6 +42,8 @@ watch([screen, shot], ([s, p]) => (s === 'photo' && !p ? openCam(false) : stopCa
 onBeforeUnmount(() => { stopCam(); dropShot() })
 
 const layout = ref('single') // single | strip
+const galEl = ref(null)
+const logo = Object.assign(new Image(), { src: '/favicon.svg' }) // printed on strips
 
 // The couple's frame PNGs. crossOrigin keeps the canvas exportable; one that fails to load just isn't offered.
 const overlays = ref({})
@@ -101,11 +105,13 @@ function grab() {
   return c
 }
 
+const loadFonts = (font) => Promise.all([document.fonts.load(`80px "${font}"`), document.fonts.load('600 43px Figtree'), document.fonts.load('400 30px "Young Serif"'), logo.decode().catch(() => {})])
+
 async function shoot() {
   if (!camEl.value?.videoWidth || shot.value || running.value) return
   const id = ++run, n = L.value.wins.length, shots = [], { font } = resolve(ev.value.theme)
   running.value = true
-  const fonts = Promise.all([document.fonts.load(`80px "${font}"`), document.fonts.load('600 43px Figtree')])
+  const fonts = loadFonts(font)
   for (let i = 0; i < n; i++) {
     if (n > 1) {
       for (count.value = 3; count.value; count.value--) {
@@ -117,9 +123,34 @@ async function shoot() {
     shots.push(grab())
     if (n > 1) taken.value = shots.length
   }
+  await finish(id, shots, fonts, font)
+}
+
+// gallery pick: a strip with fewer than 3 picks repeats them to fill its windows
+async function pick(e) {
+  const files = [...e.target.files]
+  e.target.value = ''
+  if (!files.length || shot.value || running.value) return
+  const id = ++run, n = L.value.wins.length, { font } = resolve(ev.value.theme)
+  running.value = true
+  err.value = ''
+  const fonts = loadFonts(font)
+  try {
+    const shots = await Promise.all(Array.from({ length: n }, (_, i) => createImageBitmap(files[i % files.length])))
+    await finish(id, shots, fonts, font)
+  } catch {
+    if (id !== run) return
+    running.value = false
+    err.value = 'pick'
+  }
+}
+
+async function finish(id, shots, fonts, font) {
+  const n = shots.length
   await fonts
   if (id !== run) return
-  const c = compose(L.value, shots, style.value, { couple: couple.value, date: date.value, font })
+  // a logo that failed to load is left off rather than blocking the photo
+  const c = compose(L.value, shots, style.value, { couple: couple.value, date: date.value, font, logo: n > 1 && logo.naturalWidth ? logo : null })
   const blob = await new Promise((res) => c.toBlob(res, 'image/jpeg', 0.9))
   if (id !== run) return
   running.value = false
@@ -143,7 +174,7 @@ async function send() {
 </script>
 
 <template>
-  <Recorder v-if="screen === 'video'" :slug="slug" source="event" @back="go('landing')" @done="doneKind = 'video'; go('done')" />
+  <Recorder v-if="screen === 'video'" :slug="slug" source="event" :couple="couple" :art="kadMode ? null : art" :art-size="artSize" @back="go('landing')" @done="doneKind = 'video'; go('done')" />
 
   <div v-else class="shell">
     <div class="app">
@@ -151,7 +182,7 @@ async function send() {
         <button v-if="screen === 'photo'" class="back" :aria-label="t('back')" :disabled="sending" @click="shot ? dropShot() : go('landing')">
           <svg class="ic"><use href="#i-back" /></svg>
         </button>
-        <div v-else class="mark">Sepatah</div>
+        <div v-else class="mark sm quiet">Sepatah</div>
         <LangToggle />
       </header>
 
@@ -172,29 +203,29 @@ async function send() {
       <main v-else :key="screen" class="screen">
         <template v-if="screen === 'landing' && phase !== 'open'">
           <div class="hero">
-            <div class="names"><span>{{ ev.bride }}</span><span class="amp">&amp;</span><span>{{ ev.groom }}</span></div>
+            <h1 class="names"><span>{{ ev.bride }}</span><span class="amp">&amp;</span><span>{{ ev.groom }}</span></h1>
             <div class="orn"><i></i></div>
           </div>
           <div class="state light">
             <div class="badge"><svg class="ic"><use :href="phase === 'before' ? '#i-calendar' : '#i-check'" /></svg></div>
             <h2>{{ t(phase === 'before' ? 'notOpen' : 'closed') }}</h2>
-            <p>{{ phase === 'before' ? t('notOpenSub', { when: opensAt }) : t('closedSub', { couple }) }}</p>
-            <RouterLink v-if="phase === 'before'" :to="`/${slug}`" class="btn sm">{{ t('toInvite') }}</RouterLink>
+            <p>{{ phase === 'before' ? t(ev.rsvp !== false ? 'notOpenSub' : 'notOpenSubSolo', { when: opensAt }) : t('closedSub', { couple }) }}</p>
+            <RouterLink v-if="phase === 'before' && ev.rsvp !== false":to="`/${slug}`" class="btn sm">{{ t('toInvite') }}</RouterLink>
           </div>
         </template>
 
         <template v-else-if="screen === 'landing'">
           <div v-if="art" class="hero">
-            <img v-if="kadMode" class="kad sm" :src="art" :alt="t('kadAlt', { couple })" />
+            <template v-if="kadMode"><h1 class="sr">{{ couple }}</h1><img class="kad sm" :src="art" :style="kadBox(artSize, 40)" :alt="t('kadAlt', { couple })" /></template>
             <div v-else class="framed sm">
-              <img :src="art" alt="" />
-              <div><div class="eyebrow">{{ t('eyebrow') }}</div><div class="names"><span>{{ ev.bride }}</span><span class="amp">&amp;</span><span>{{ ev.groom }}</span></div></div>
+              <img :src="art" :width="artSize?.[0]" :height="artSize?.[1]" alt="" />
+              <div><div class="eyebrow">{{ t('eyebrow') }}</div><h1 class="names"><span>{{ ev.bride }}</span><span class="amp">&amp;</span><span>{{ ev.groom }}</span></h1></div>
             </div>
             <p class="lede">{{ t('lede') }}</p>
           </div>
           <div v-else class="hero arch">
             <div class="eyebrow">{{ t('eyebrow') }}</div>
-            <div class="names"><span>{{ ev.bride }}</span><span class="amp">&amp;</span><span>{{ ev.groom }}</span></div>
+            <h1 class="names"><span>{{ ev.bride }}</span><span class="amp">&amp;</span><span>{{ ev.groom }}</span></h1>
             <div class="orn"><i></i></div>
             <p class="lede">{{ t('lede') }}</p>
           </div>
@@ -203,7 +234,7 @@ async function send() {
               <svg class="ic"><use href="#i-video" /></svg>
               <span><b>{{ t('btnVideo') }}</b><small>{{ t('btnVideoSub') }}</small></span>
             </button>
-            <button class="btn outline" @click="go('photo')">
+            <button class="btn" @click="go('photo')">
               <svg class="ic"><use href="#i-camera" /></svg>{{ t('btnPhoto') }}
             </button>
             <p class="hint">{{ t('foot') }}</p>
@@ -219,7 +250,7 @@ async function send() {
           </div>
           <div class="stack">
             <button class="btn primary" @click="go(doneKind === 'video' ? 'photo' : 'video')">{{ t(doneKind === 'video' ? 'nextPhoto' : 'nextVideo') }}</button>
-            <button class="btn outline" @click="go('landing')">{{ t('back') }}</button>
+            <button class="btn" @click="go('landing')">{{ t('back') }}</button>
           </div>
         </template>
 
@@ -268,6 +299,9 @@ async function send() {
           <div class="grow"></div>
           <button class="shutter" :disabled="!camOk || running" :aria-label="t('shutter')" @click="shoot"><i></i></button>
           <p class="hint">{{ t(layout === 'strip' ? 'stripHint' : 'photoHint') }}</p>
+          <p v-if="err === 'pick'" class="err" role="alert"><svg class="ic sm"><use href="#i-alert" /></svg>{{ t('pickFail') }}</p>
+          <button class="linkbtn" :disabled="running" @click="galEl.click()">{{ t(layout === 'strip' ? 'fromGalleryStrip' : 'fromGallery') }}</button>
+          <input ref="galEl" type="file" accept="image/*" :multiple="layout === 'strip'" hidden @change="pick" />
         </template>
       </main>
     </div>

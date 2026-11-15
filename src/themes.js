@@ -123,7 +123,8 @@ export function cover(sw, sh, w, h) {
 // shots: canvases/images, already mirrored for the selfie camera. style: a frameStyles entry, or { overlay: Image, ...colours }.
 // L is a LAYOUTS entry, or a couple's own fit (fitSingle/fitStrip): `under` puts the design behind the photos,
 // `parts` copies slices of the design ([sy, sh, dy] in layout px, design scaled to width L.w), `fill` colours the gaps.
-export function compose(L, shots, style, { couple, date, font }) {
+// logo: the Sepatah icon (an Image), drawn as a small lockup at the foot of the caption, or of the design if it owns the caption.
+export function compose(L, shots, style, { couple, date, font, logo }) {
   const c = Object.assign(document.createElement('canvas'), { width: L.w, height: L.h })
   const g = c.getContext('2d')
   const art = style.overlay
@@ -137,23 +138,40 @@ export function compose(L, shots, style, { couple, date, font }) {
   L.wins.forEach(([x, y, w, h], i) => g.drawImage(shots[i], ...cover(shots[i].width, shots[i].height, w, h), x, y, w, h))
   if (art && !L.under) drawArt()
   // a template-made design carries its own caption; a fitted one gets ours only if Mato left it on
-  if (art ? !L.own || !L.cap : !L.cap) return c
-  if (!art && style.bd) {
-    g.strokeStyle = style.bd
-    g.lineWidth = 4
-    g.strokeRect(2, 2, L.w - 4, L.h - 4)
+  const ours = art ? L.own && L.cap : L.cap
+  if (ours) {
+    if (!art && style.bd) {
+      g.strokeStyle = style.bd
+      g.lineWidth = 4
+      g.strokeRect(2, 2, L.w - 4, L.h - 4)
+    }
+    const [cy, ch] = L.cap, up = logo ? 0.1 : 0 // names and date move up to leave the logo room
+    g.textAlign = 'center'
+    g.fillStyle = style.fg
+    // long couple names shrink to fit the caption; a short caption band starts smaller
+    let size = Math.min(86, Math.round(ch * 0.32))
+    do g.font = `${size}px "${font}", Georgia, serif`
+    while (g.measureText(couple).width > L.w - 100 && (size -= 4) > 30)
+    g.fillText(couple, L.w / 2, cy + ch * (0.48 - up))
+    g.fillStyle = style.sub
+    g.font = `600 ${Math.min(43, Math.round(ch * 0.16))}px Figtree, sans-serif`
+    g.fillText(date, L.w / 2, cy + ch * (0.8 - up))
   }
-  const [cy, ch] = L.cap
-  g.textAlign = 'center'
-  g.fillStyle = style.fg
-  // long couple names shrink to fit the caption; a short caption band starts smaller
-  let size = Math.min(86, Math.round(ch * 0.32))
-  do g.font = `${size}px "${font}", Georgia, serif`
-  while (g.measureText(couple).width > L.w - 100 && (size -= 4) > 30)
-  g.fillText(couple, L.w / 2, cy + ch * 0.48)
-  g.fillStyle = style.sub
-  g.font = `600 ${Math.min(43, Math.round(ch * 0.16))}px Figtree, sans-serif`
-  g.fillText(date, L.w / 2, cy + ch * 0.8)
+  if (logo) {
+    // icon + "sepatah." on a pill in the frame colour, so it reads over a couple's artwork too
+    const s = 36, y = (ours ? L.cap[0] + L.cap[1] : L.h) - 40
+    g.font = '400 30px "Young Serif", Georgia, serif'
+    g.textAlign = 'left'
+    g.textBaseline = 'middle'
+    const tw = g.measureText('sepatah.').width, x = (L.w - s - 10 - tw) / 2
+    g.fillStyle = style.bg
+    g.beginPath()
+    g.roundRect(x - 14, y - s / 2 - 8, s + tw + 38, s + 16, (s + 16) / 2)
+    g.fill()
+    g.drawImage(logo, x, y - s / 2, s, s)
+    g.fillStyle = style.sub
+    g.fillText('sepatah.', x + s + 10, y)
+  }
   return c
 }
 
@@ -262,3 +280,6 @@ export function template(name) {
   g.fillText(`keep the ${L.wins.length > 1 ? 'photo windows' : 'photo window'} transparent`, L.w / 2, L.cap[0] + L.cap[1] * 0.68)
   return c.toDataURL('image/png')
 }
+
+// Reserves the couple's artwork box before it loads (no layout shift). size = [w, h] saved at upload; older events have none.
+export const kadBox = (size, dvh) => size && { aspectRatio: `${size[0]} / ${size[1]}`, width: `min(100%, ${(dvh * size[0]) / size[1]}dvh)` }

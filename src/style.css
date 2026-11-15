@@ -6,6 +6,9 @@
   /* brand fonts: Gloock is the logo "s" (couple names only), Young Serif the wordmark (headings) */
   --names: 'Gloock', Georgia, serif; --display: 'Young Serif', Georgia, serif; --sans: 'Figtree', system-ui, sans-serif;
   --fs-sm: 14px; --fs-base: 16px; --fs-md: 18px; --fs-lg: 22px; --fs-xl: 28px; --fs-2xl: 36px;
+  /* editorial scale for the wide pages (landing, gallery): one display size, one section size */
+  --fs-display: clamp(40px, 6vw, 72px); --fs-h2: clamp(30px, 4.2vw, 48px);
+  --wrap: 1120px; --gutter: clamp(20px, 4vw, 32px); --space-section: clamp(72px, 10vw, 128px);
   --r-ctl: 12px; --r-card: 20px; --r-arch: 999px 999px 6px 6px;
   --ring: 0 0 0 3px rgba(31, 58, 45, .18);
   --ease: cubic-bezier(.2, .8, .2, 1);
@@ -13,14 +16,14 @@
   --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 * { box-sizing: border-box; }
-/* handmade paper: soft watercolour mottling + fine tooth, tiles seamlessly */
-body { margin: 0; font: var(--fs-base)/1.6 var(--sans); color: var(--ink); background: var(--grain), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='m' x='0' y='0' width='1' height='1'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.005' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .6 0 0 0 0 .48 0 0 0 0 .32 .8 0 0 0 -.24'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E"), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='b' x='0' y='0' width='1' height='1'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.025' numOctaves='3' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .62 0 0 0 0 .5 0 0 0 0 .36 .6 0 0 0 -.24'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23b)'/%3E%3C/svg%3E"), var(--paper); -webkit-font-smoothing: antialiased; }
-button { font: inherit; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+/* flat paper: the grain lives only on printed objects (arch, envelope card), not behind the whole page */
+body { margin: 0; font: var(--fs-base)/1.6 var(--sans); color: var(--ink); background: var(--paper); -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent; }
+a[href], button, summary, select, label[for], [role=button], [role=tab], [role=switch], input[type=checkbox], input[type=radio], input[type=file] { cursor: pointer; }
+:disabled, [aria-disabled=true] { cursor: not-allowed; }
 a { color: var(--ink); }
 :focus-visible { outline: 2px solid var(--deep); outline-offset: 2px; }
-.dark :focus-visible { outline-color: var(--on-deep); }
 .shell { min-height: 100dvh; overflow-x: clip; transition: background .4s ease, color .4s ease; }
-.shell.dark { background: var(--deep-3); color: var(--on-deep); }
 .app { max-width: 440px; margin: 0 auto; min-height: 100dvh; padding: 16px 20px max(28px, env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 20px; }
 .screen { flex: 1; display: flex; flex-direction: column; gap: 20px; animation: rise .45s var(--ease) both; }
 @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
@@ -36,20 +39,21 @@ a { color: var(--ink); }
 .mark::after { content: '.'; color: var(--accent); }
 .mark.sm { font-size: 15px; }
 .mark.sm::before { width: 18px; height: 18px; margin-right: 6px; }
+/* guest screens belong to the couple: the Sepatah mark steps back so their names are the one focal point */
+.mark.quiet { color: var(--mut); }
+.mark.quiet::after { color: inherit; }
+@media (min-width: 768px) { .app { padding-top: 40px; } }
 .made { display: flex; align-items: center; justify-content: center; gap: 6px; padding-top: 12px; font-size: var(--fs-sm); color: var(--mut); }
 .back { position: relative; flex-shrink: 0; width: 44px; height: 44px; border-radius: 50%; border: 1.5px solid var(--ctl); background: transparent; color: var(--ink); display: grid; place-items: center; transition: transform .2s var(--ease), background .2s; }
 .back:active { transform: scale(.94); }
 @media (hover: hover) { .back:hover { background: var(--tint); } }
-.dark .back { background: color-mix(in srgb, var(--on-deep) 8%, transparent); border-color: transparent; color: var(--on-deep); }
 .back[aria-pressed=false] { opacity: .5; }
-.back[aria-pressed=true]::after { content: ''; position: absolute; inset: -1.5px; border-radius: 50%; border: 1.5px solid var(--deep); animation: ping 1.8s ease-out infinite; }
-.pill { padding: 8px 14px; border-radius: var(--r-ctl); background: color-mix(in srgb, var(--on-deep) 10%, transparent); font-weight: 600; font-variant-numeric: tabular-nums; }
+.back[aria-pressed=true] { border-color: var(--deep); color: var(--deep); } /* music playing: a solid ring, no endless pulse */
+.pill { padding: 8px 14px; border-radius: var(--r-ctl); background: var(--tint); color: var(--deep); font-weight: 600; font-variant-numeric: tabular-nums; }
 .lang { display: flex; height: 36px; padding: 3px; border: 1.5px solid var(--ctl); border-radius: 10px; }
-.lang button { min-width: 40px; border: 0; border-radius: 7px; background: transparent; color: var(--mut); font-size: 13px; font-weight: 600; transition: background .25s var(--ease), color .25s; }
+.lang button { position: relative; min-width: 44px; border: 0; border-radius: 7px; background: transparent; color: var(--mut); font-size: 13px; font-weight: 600; transition: background .25s var(--ease), color .25s; }
+.lang button::after { content: ''; position: absolute; inset: -7px 0; } /* the pill stays 36px tall, the tap area is 44px */
 .lang button[aria-pressed=true] { background: var(--deep); color: var(--on-deep); }
-.dark .lang { border-color: color-mix(in srgb, var(--on-deep) 25%, transparent); }
-.dark .lang button { color: var(--on-deep-mut); }
-.dark .lang button[aria-pressed=true] { background: var(--on-deep); color: var(--deep-3); }
 
 /* hero: children arrive one after another, names ink in */
 .hero { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 16px; }
@@ -57,7 +61,7 @@ a { color: var(--ink); }
 .hero > :nth-child(2) { animation-delay: .08s; } .hero > :nth-child(3) { animation-delay: .16s; }
 .hero > :nth-child(4) { animation-delay: .24s; } .hero > :nth-child(5) { animation-delay: .32s; } .hero > :nth-child(n+6) { animation-delay: .4s; }
 .eyebrow { margin: 0; font-size: var(--fs-md); font-weight: 500; color: var(--mut); }
-.names { display: flex; flex-direction: column; align-items: center; font: 400 clamp(52px, 15vw, 72px)/1 var(--names); letter-spacing: -.01em; color: var(--deep); animation: none !important; }
+.names { display: flex; flex-direction: column; align-items: center; margin: 0; font: 400 clamp(52px, 15vw, 72px)/1 var(--names); letter-spacing: -.01em; color: var(--deep); animation: none !important; }
 .names span { animation: ink 1s var(--ease) both; }
 .names span:nth-child(2) { animation-delay: .2s; } .names span:nth-child(3) { animation-delay: .35s; }
 .amp { margin: .12em 0; font-family: var(--names); font-style: normal; font-size: .5em; color: var(--mut); }
@@ -73,7 +77,7 @@ a { color: var(--ink); }
 .grow { flex: 1; }
 .hint { margin: 0; font-size: var(--fs-sm); line-height: 1.5; color: var(--mut); text-align: center; }
 .hint.left { text-align: left; }
-.hint.dim { color: var(--on-deep-mut); min-height: 21px; }
+.hint.dim { color: var(--mut); min-height: 21px; }
 
 /* the arch: one per screen, deep green, carries the couple's names */
 .arch { flex: none; width: 100%; padding: 84px 28px 44px; border-radius: var(--r-arch); background: var(--grain), var(--deep); color: var(--on-deep); animation: draw 1.2s var(--ease) both; }
@@ -94,15 +98,14 @@ a { color: var(--ink); }
 .btn.two small { font-size: var(--fs-sm); font-weight: 400; opacity: .85; }
 .btn.sm { min-height: 44px; padding: 0 16px; border-radius: 10px; font-size: 15px; }
 /* inside the camera / dark screens, buttons go transparent and take the text colour */
-.dark .btn:not(.primary), .state:not(.light) .btn { background: transparent; color: inherit; border-color: currentColor; }
+.state:not(.light) .btn { background: transparent; color: inherit; border-color: currentColor; }
 .linkbtn { min-height: 44px; border: 0; background: none; text-decoration: underline; text-underline-offset: 3px; font-size: 15px; font-weight: 500; color: var(--ink); }
-.dark .linkbtn { color: var(--on-deep); }
 
 /* ---- envelope cover ---- */
 .cover { align-items: center; justify-content: center; gap: 36px; text-align: center; transition: opacity .35s ease, transform .35s ease, filter .35s ease; }
 .cover.out { opacity: 0; transform: scale(1.05); filter: blur(8px); }
 .cover > .eyebrow { animation: rise .6s var(--ease) both; }
-.env { position: relative; width: min(320px, 86vw); aspect-ratio: 10 / 7; margin-top: 32px; padding: 0; border: 0; background: none; perspective: 1400px; animation: float 5s ease-in-out infinite; }
+.env { position: relative; width: min(320px, 86vw); aspect-ratio: 10 / 7; margin-top: 32px; padding: 0; border: 0; background: none; perspective: 1400px; animation: float 5s ease-in-out 2; /* two gentle sways, then still */ }
 @keyframes float { 50% { transform: translateY(-8px) rotate(-1deg); } }
 .env.open { animation-play-state: paused; cursor: default; }
 /* flower sprigs tucked on two corners, like a styled invitation flat-lay */
@@ -121,7 +124,7 @@ a { color: var(--ink); }
 .env-front { z-index: 2; background: var(--deep); clip-path: polygon(0 0, 50% 55%, 100% 0, 100% 100%, 0 100%); }
 .env-flap { z-index: 3; background: var(--deep-2); clip-path: polygon(0 0, 100% 0, 50% 58%); transform-origin: top; transition: transform .65s var(--ease) .1s, z-index 0s .4s; }
 .seal { position: absolute; z-index: 4; left: 50%; top: 58%; width: 66px; height: 66px; margin: -33px 0 0 -33px; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--accent), white 25%), var(--accent) 55%, color-mix(in srgb, var(--accent), black 30%)); color: var(--on-accent); font: 400 24px/1 var(--names); box-shadow: inset 0 0 0 5px rgba(0, 0, 0, .08), 0 6px 14px rgba(0, 0, 0, .35); transition: transform .35s var(--ease), opacity .3s; }
-.seal::before { content: ''; position: absolute; inset: 0; border-radius: 50%; border: 1px solid var(--accent); animation: ping 2s ease-out infinite; }
+.seal::before { content: ''; position: absolute; inset: 0; border-radius: 50%; border: 1px solid var(--accent); animation: ping 2s ease-out 3; /* three taps of invitation, then still */ }
 .seal::after { content: ''; position: absolute; inset: 7px; border-radius: 50%; border: 1px dashed color-mix(in srgb, var(--on-accent) 40%, transparent); }
 .env-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top; border-radius: 4px; }
 /* the couple's own kad artwork takes the arch's place */
@@ -140,11 +143,29 @@ a { color: var(--ink); }
 .env.open .seal { transform: scale(1.5) rotate(20deg); opacity: 0; }
 .env.open .env-flap { transform: rotateX(180deg); z-index: 0; }
 .env.open .env-card { transform: translateY(-62%); }
-.tap { display: flex; align-items: center; gap: 8px; font-size: 15px; animation: rise .6s var(--ease) .6s both; }
-.tap::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: ping 1.6s ease-out infinite alternate; }
+.tap { font-size: 15px; animation: rise .6s var(--ease) .6s both; }
 
 /* ---- camera screens ---- */
 .cam { position: relative; flex: 1; min-height: 360px; border-radius: 24px; background: var(--deep); overflow: hidden; }
+/* the recorder wears the wedding: their names, the camera inside the arch with a thin keyline, their bouquet on two corners */
+.rec-head { display: flex; flex-direction: column; align-items: center; gap: 2px; margin: -4px 0 0; text-align: center; animation: rise .5s var(--ease) both; }
+.rec-head span { font-size: var(--fs-sm); letter-spacing: .14em; text-transform: uppercase; color: var(--mut); }
+.rec-head b { font: 400 clamp(30px, 9vw, 40px)/1.1 var(--names); color: var(--deep); }
+.cam-frame { position: relative; flex: 1; display: flex; padding: 6px; border: 1.5px solid color-mix(in srgb, var(--deep) 30%, transparent); border-radius: 999px 999px 30px 30px; }
+.cam-frame .cam { min-height: 240px; border-radius: 999px 999px 24px 24px; }
+.cam-frame::before, .cam-frame::after { content: ''; position: absolute; z-index: 2; width: 38%; max-width: 160px; aspect-ratio: 1; background: var(--sprig) center / contain no-repeat; pointer-events: none; }
+.cam-frame::before { left: -12%; top: 6%; }
+.cam-frame::after { right: -12%; bottom: -9%; transform: rotate(180deg); }
+/* the arch's curve would clip a corner button: flip sits at the top centre (it hides while recording, when the REC badge takes that spot) */
+.cam-frame .flip { top: 16px; right: auto; left: 50%; translate: -50% 0; }
+.cam-frame .flip:active { transform: scale(.92); }
+.cam-frame .cam-top { top: 24px; }
+/* the couple's own frame artwork, drawn around the full-size camera with border-image: its corners keep their shape,
+   its edges stretch to the camera's size and the plain middle (where the invite writes the names) is where the camera shows.
+   ponytail: one 18% cut suits frames whose ornaments sit in the outer band, as the admin template asks; a per-wedding cut if a design needs it. */
+.cam-frame.art { --bw: clamp(34px, 10vw, 48px); padding: 0; border-style: solid; border-width: calc(var(--bw) / var(--ar)) var(--bw); border-radius: 0; border-image: var(--art) 18% round; background: var(--card); }
+.cam-frame.art .cam { min-height: 160px; border-radius: 8px; }
+.cam-frame.art::before, .cam-frame.art::after { content: none; }
 .feed { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
 .feed.rear { transform: none; } /* only the selfie camera is mirrored */
 .flip { position: absolute; top: 12px; right: 12px; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: rgba(0, 0, 0, .4); color: #fff; display: grid; place-items: center; }
@@ -159,8 +180,8 @@ a { color: var(--ink); }
 .recbtn:disabled { opacity: .3; }
 .ring { position: absolute; inset: 0; transform: rotate(-90deg); }
 .ring circle { fill: none; stroke-width: 4; }
-.track { stroke: color-mix(in srgb, var(--on-deep) 20%, transparent); }
-.prog { stroke: var(--on-deep); stroke-linecap: round; stroke-dasharray: 276.46; transition: stroke-dashoffset .1s linear; }
+.track { stroke: var(--line); }
+.prog { stroke: var(--deep); stroke-linecap: round; stroke-dasharray: 276.46; transition: stroke-dashoffset .1s linear; }
 .core { width: 70px; height: 70px; border-radius: 50%; background: var(--accent); transition: all .3s var(--ease); }
 .core.stop { width: 32px; height: 32px; border-radius: 8px; }
 
@@ -174,7 +195,6 @@ a { color: var(--ink); }
 .badge .ic { width: 26px; height: 26px; }
 .err { display: flex; align-items: flex-start; gap: 8px; margin: 0; font-size: var(--fs-sm); line-height: 1.45; color: var(--err); animation: rise .3s var(--ease); }
 .err .ic { margin-top: 1px; }
-.dark .err { color: #F29A86; }
 .check { width: 84px; height: 112px; padding-top: 14px; border-radius: var(--r-arch); background: var(--deep); color: var(--on-deep); display: grid; place-items: center; animation: pop .6s var(--ease) both; }
 .check .ic { width: 40px; height: 40px; stroke-width: 1.6; stroke-dasharray: 20; stroke-dashoffset: 20; animation: stroke .5s var(--ease) .35s forwards; }
 @keyframes pop { from { transform: scale(.5) translateY(20px); opacity: 0; } }
@@ -241,9 +261,9 @@ div.polaroid .cap { position: absolute; left: 0; right: 0; bottom: 0; height: au
 .box .row { justify-content: space-between; }
 
 /* ---- invitation: arch first, then left-aligned sections on plain paper ---- */
-.invite { gap: 36px; }
+.invite { gap: 44px; }
 .sec { display: flex; flex-direction: column; gap: 16px; padding-top: 28px; border-top: 1px solid var(--line); }
-.sec h2 { margin: 0; font: 400 var(--fs-xl)/1.15 var(--display); color: var(--deep); }
+.sec h2 { margin: 0; font: 400 clamp(28px, 8vw, 34px)/1.1 var(--display); letter-spacing: -.015em; color: var(--deep); }
 .txt { margin: 0; line-height: 1.6; color: var(--mut); }
 .txt b { font-weight: 600; color: var(--ink); }
 .big { margin: 0; font-size: var(--fs-lg); font-weight: 600; line-height: 1.35; font-variant-numeric: tabular-nums; color: var(--ink); }
@@ -296,6 +316,7 @@ div.polaroid .cap { position: absolute; left: 0; right: 0; bottom: 0; height: au
 .field .affix input { flex: 1; min-width: 0; min-height: 43px; padding-left: 1px; border: 0; background: none; box-shadow: none; }
 .affix:focus-within { border-color: var(--deep); box-shadow: var(--ring); }
 .map { height: 320px; border: 1.5px solid var(--ctl); border-radius: var(--r-ctl); background: var(--tint); isolation: isolate; font-weight: 400; }
+.gsearch gmp-place-autocomplete { width: 100%; color-scheme: light; }
 .pin svg { width: 36px; height: 36px; fill: var(--accent); stroke: var(--on-accent); stroke-width: 1.2; filter: drop-shadow(0 3px 4px rgba(0, 0, 0, .35)); }
 .list button { width: 100%; min-height: 44px; padding: 10px 16px; border: 0; background: none; text-align: left; font-size: var(--fs-sm); font-weight: 400; }
 .savebar { position: sticky; bottom: 0; z-index: 1; display: flex; align-items: center; gap: 16px; margin: 0 -20px; padding: 12px 20px max(12px, env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--paper); }
@@ -352,6 +373,41 @@ div.polaroid .cap { position: absolute; left: 0; right: 0; bottom: 0; height: au
 .vid figcaption.inline { flex-direction: row; align-items: center; justify-content: space-between; padding: 8px 8px 8px 12px; }
 .vid small { font-size: 12px; font-weight: 400; color: var(--mut); }
 .vid .row { justify-content: space-between; }
-.vid.hid video { opacity: .35; }
+.vid.hid video, .vid.hid img { opacity: .35; }
+
+/* live screen: venue projector, dark so the photos carry the room */
+.live { position: fixed; inset: 0; overflow: hidden; background: var(--deep-3); color: var(--on-deep); cursor: none; }
+.live .state { cursor: default; }
+.live .skel { border-radius: var(--r-card); opacity: .3; }
+.state .live-names { font: 400 clamp(48px, 8vw, 96px)/1.1 var(--names); }
+.live-names .amp { color: var(--on-deep-mut); }
+.live-shot { position: absolute; inset: 0; margin: 0; display: grid; place-items: center; padding: 4vh 4vw 10vh; }
+.live-shot img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; box-shadow: 0 30px 80px -20px rgba(0, 0, 0, .6); }
+.live-shot figcaption { position: absolute; bottom: 3.5vh; left: 0; right: 0; text-align: center; font: 400 clamp(20px, 2.4vw, 32px)/1.2 var(--display); }
+.live-foot { position: absolute; left: 3vw; right: 3vw; bottom: 3.5vh; display: flex; justify-content: space-between; align-items: center; color: var(--on-deep-mut); pointer-events: none; }
+.live-couple { font: 400 clamp(16px, 1.6vw, 22px)/1 var(--names); }
+.live .mark { margin-left: auto; color: var(--on-deep); }
+.live-enter-active, .live-leave-active { transition: opacity .3s ease; }
+.live-enter-from, .live-leave-to { opacity: 0; }
+
+/* couple gallery: tiles sit on the paper like prints, no card around them */
+.gal .vid { overflow: visible; border: 0; border-radius: 0; background: none; }
+.gal .vid video, .gal .vid img { border-radius: 14px; }
+.gal .vid figcaption.inline { padding: 10px 0 0 2px; }
+
+/* admin login: one centred card */
+.login { width: min(400px, 100%); margin: auto; padding: 28px 24px; border: 1px solid var(--line); border-radius: var(--r-card); background: var(--card); }
+.login .field input { background: var(--paper); }
+.ev-names { font: 400 20px/1.25 var(--names); color: var(--deep); }
+/* event editor: a jump list beside the long form on wide screens */
+.ae-nav { display: none; }
+.fs { scroll-margin-top: 24px; }
+@media (min-width: 1100px) {
+  .admin.wide { max-width: var(--wrap); }
+  .ae { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 48px; align-items: start; }
+  .ae-nav { position: sticky; top: 24px; display: flex; flex-direction: column; gap: 2px; padding-top: 4px; }
+  .ae-nav a { display: flex; align-items: center; min-height: 40px; padding: 0 12px; border-radius: 10px; font-size: var(--fs-sm); font-weight: 500; color: var(--mut); text-decoration: none; }
+  .ae-nav a:hover { background: var(--tint); color: var(--ink); }
+}
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } .check .ic { stroke-dashoffset: 0; } }

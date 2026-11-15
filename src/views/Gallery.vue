@@ -26,6 +26,7 @@ async function load(quiet) {
   loadedAt = Date.now()
   if (first) {
     initLang(data.default_lang)
+    document.title = `${data.bride} & ${data.groom} | Sepatah`
     applyTheme(data.theme)
     tab.value = TABS.find(([k]) => list(k).length)?.[0] || 'pre'
   }
@@ -107,7 +108,7 @@ function show(it, i) {
 <template>
   <div class="gal">
     <header class="bar">
-      <div class="mark">Sepatah</div>
+      <div class="mark sm quiet">Sepatah</div>
       <LangToggle />
     </header>
 

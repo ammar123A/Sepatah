@@ -1,0 +1,640 @@
+{
+ "start": "2026-11-14T15:26:43.270Z",
+ "round": 3,
+ "idle": 0,
+ "errors": 0,
+ "status": "open",
+ "history": [
+  {
+   "at": "2026-11-14T15:28:40.175Z",
+   "mode": "manual",
+   "status": "fail",
+   "fails": 4,
+   "round": 1,
+   "reused": false,
+   "stopHookActive": false
+  },
+  {
+   "at": "2026-11-14T15:31:50.008Z",
+   "mode": "manual",
+   "status": "fail",
+   "fails": 1,
+   "round": 2,
+   "reused": false,
+   "stopHookActive": false
+  },
+  {
+   "at": "2026-11-14T15:34:01.942Z",
+   "mode": "manual",
+   "status": "open",
+   "fails": 2,
+   "round": 3,
+   "reused": false,
+   "stopHookActive": false
+  },
+  {
+   "at": "2026-11-14T15:34:12.641Z",
+   "mode": "hook",
+   "host": "claude",
+   "decision": "allow",
+   "reason": "no build is active here",
+   "stopHookActive": true
+  }
+ ],
+ "max": 3,
+ "marker": {
+  "page": "dist/index.html",
+  "url": null,
+  "root": "dist",
+  "kind": "service",
+  "category": "undangan perkahwinan digital",
+  "primary": "Tanya tarikh di WhatsApp",
+  "rounds": 3,
+  "start": "2026-11-14T15:26:43.270Z",
+  "by": "gate.mjs --start"
+ },
+ "manual": true,
+ "roundKey": "db76b39cf893b52d:a55187ed",
+ "roundFree": false,
+ "idleFree": false,
+ "blockKey": null,
+ "fp": "db76b39cf893b52d",
+ "page": "dist/index.html",
+ "found": {
+  "fails": [
+   {
+    "check": "copy-headings",
+    "where": "div.mo-pc__text > ol.mo-pc__steps > li.mo-pc__step:nth-of-type(1) > h3 \"Sebelum majlis: RSVP dan ucapan awal\"",
+    "msg": "\"Sebelum majlis: RSVP dan ucapan awal\" names no product, part, place or section (6 headings like it; at most one brand line per page) (and 5 more like it: \"Di majlis: QR di setiap \", \"Selepas majlis: galeri u\", \"Sepuluh reka bentuk, ata\", \"Soalan pengantin\", ...)",
+    "fix": "name the thing in every heading: the product, a part, the place or a section noun",
+    "widths": [
+     1440
+    ],
+    "from": "consistency",
+    "ids": [
+     "copy-headings"
+    ],
+    "wheres": [
+     "div.mo-pc__text > ol.mo-pc__steps > li.mo-pc__step:nth-of-type(1) > h3 \"Sebelum majlis: RSVP dan ucapan awal\""
+    ]
+   },
+   {
+    "check": "phone-number",
+    "where": "header.nav > div.wrap.nav__bar > div.nav__actions > a.btn.btn--primary \"https://wa.me/601111474745?text=Hai%20Se\"",
+    "msg": "a WhatsApp link calls a number in a real dialable format: \"https://wa.me/601111474745?text=Hai%20Se\"; a visitor can dial it and reach a stranger (and 3 more like it: div.hero__over > div > div.btn-row > a.btn.btn--primary, div.wrap > div.closing__cta.close--photo > div.section-head--split > a.btn.btn--primary, nav.actionbar > a.btn.btn--primary)",
+    "fix": "drop the number and its tel: link (a \"Request a call\" form may stand in), unless the brief gives the number",
+    "widths": [
+     1440
+    ],
+    "from": "consistency",
+    "ids": [
+     "phone-number"
+    ],
+    "wheres": [
+     "header.nav > div.wrap.nav__bar > div.nav__actions > a.btn.btn--primary \"https://wa.me/601111474745?text=Hai%20Se\""
+    ]
+   },
+   {
+    "check": "run-on",
+    "where": "h2#undangan-h \"Undangan yang dibuka dari WhatsApp\"",
+    "msg": "\"ndangan yang dibuka dari | WhatsApp\": the heading runs its first sentence into the grey second one with no stop",
+    "fix": "end the heading's first sentence with a full stop before its grey second one (\"Rooms and prices. Breakfast included.\")",
+    "widths": [
+     1440
+    ],
+    "from": "consistency",
+    "ids": [
+     "run-on"
+    ],
+    "wheres": [
+     "h2#undangan-h \"Undangan yang dibuka dari WhatsApp\""
+    ]
+   },
+   {
+    "check": "card-visual",
+    "where": "div.wrap > div.grid.grid--top > div.span-6.stack-4 > ul.rows \"Asas Undangan bersampul, RSVP, lokasi da\"",
+    "msg": "3 cards hold only text: no picture, icon, UI fragment or effect in any of them",
+    "fix": "give the cards a visual: an inset panel with a UI fragment, a photograph or real icons",
+    "widths": [
+     390
+    ],
+    "from": "consistency",
+    "ids": [
+     "card-visual"
+    ],
+    "wheres": [
+     "div.wrap > div.grid.grid--top > div.span-6.stack-4 > ul.rows \"Asas Undangan bersampul, RSVP, lokasi da\""
+    ]
+   },
+   {
+    "check": "text-contrast",
+    "where": "div.group > div.faq > div.faq__item:nth-of-type(2) > p \"Sebelum majlis di pautan undangan, dan d\"",
+    "msg": "body text in #56605a on #fbf8f2 reads 6.16:1 (needs 7:1)",
+    "fix": "body text in the ink at 7:1 or more; grey (4.5:1 or more) only for captions and labels",
+    "widths": [
+     390
+    ],
+    "from": "consistency",
+    "ids": [
+     "text-contrast"
+    ],
+    "wheres": [
+     "div.group > div.faq > div.faq__item:nth-of-type(2) > p \"Sebelum majlis di pautan undangan, dan d\""
+    ]
+   },
+   {
+    "check": "hero-lines",
+    "where": "section.hero h1",
+    "msg": "the check fills the h1 to 40 characters (this hero's maxChars in heroes.json), not the page's own: it takes 4 lines at 390, 3 at most",
+    "fix": "the check fills the h1 to this hero's maxChars, not your own: take the next type pairing the deal printed (start.mjs); when the h1 is final and fits, waive it (target: section.hero h1)",
+    "widths": [
+     390
+    ],
+    "from": "layout",
+    "ids": [
+     "hero-lines"
+    ],
+    "wheres": [
+     "section.hero h1"
+    ]
+   }
+  ],
+  "warns": [
+   {
+    "check": "spill",
+    "where": "div.grid.grid--top > div.span-7.start-6 > div.gal-ui > div.gal-toast \"Ucapan video baharu Opah Timah · 0:30\"",
+    "msg": "runs 28px past the left edge of the panel it sits on (section#galeri > div.wrap > div.grid.grid--top > div.span-7.start-6) (inside a held section or scroll scene, whose motion --quick does not check)",
+    "fix": "keep the box inside the panel it starts on: shrink it, or grow the panel to hold it",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "scroll-reveal",
+    "where": "section#cara \"Dari undangan hingga galeri Sebelum majl\"",
+    "msg": "starts \"border-left-color\" (0.3 s) the moment it is scrolled into view (an IntersectionObserver) on li.mo-pc__step:nth-of-type(1) (inside a dealt moment's section, [data-moment]: an enter moment is expected on every kind; its still is judged under reduced motion)",
+    "fix": "show it at rest: no fade, rise or unmask when it is scrolled into view",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "scroll-reveal",
+    "where": "div.wrap > div.grid.grid--top > div.span-5.gal-copy > p.mo-wh__text \"Setiap ucapan video, gambar booth dan ja\"",
+    "msg": "starts \"color\" (0.2 s) the moment it is scrolled into view (an IntersectionObserver) on span.mo-w:nth-of-type(4) (inside a dealt moment's section, [data-moment]: an enter moment is expected on every kind; its still is judged under reduced motion)",
+    "fix": "show it at rest: no fade, rise or unmask when it is scrolled into view",
+    "widths": [
+     1440,
+     390
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "pinned",
+    "where": "section#cara > div.wrap.mo-pc__grid \"Dari undangan hingga galeri Sebelum majl\"",
+    "msg": "held on screen for 1 screen of scroll (position: sticky) while the page moves on (inside a dealt moment's section, [data-moment]: expected on every kind, two moments at most, house rule; its still is judged under reduced motion)",
+    "fix": "let the section scroll with the page",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "card-layout",
+    "where": "div.span-7.start-6 > div.gal-ui > div.gal-ui__in.ui > ul.gal-grid \"0:30 Pak Su Amir\"",
+    "msg": "5 cards with 1 placement of their UI (vary them: rise, corner, a low stack, right)",
+    "fix": "vary the cards of a group: at least three placements, and the ground in its own light on each",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "cta",
+    "where": "section#cara \"Dari undangan hingga galeri\"",
+    "msg": "a section over 1.5 screens long with no link or button in it",
+    "fix": "add the action: a button in the hero, one on every priced item, one in the closing section",
+    "widths": [
+     1440,
+     390
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "copy-headings",
+    "where": "div.group > div.faq > div.faq__item:nth-of-type(1) > h3 \"Tetamu perlu muat turun aplikasi?\"",
+    "msg": "the card title \"Tetamu perlu muat turun aplikasi?\" names no product, part, place or section (6 card titles like it) (and 5 more like it: \"Bila tetamu boleh rakam \", \"Siapa boleh lihat ucapan\", \"Berapa lama galeri disim\", \"Siapa cetak kad meja QR?\", ...)",
+    "fix": "name the thing in every heading: the product, a part, the place or a section noun",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "copy-buttons",
+    "where": "header.nav > div.wrap.nav__bar > div.nav__actions > a.btn.btn--primary \"Tanya tarikh di WhatsApp\"",
+    "msg": "\"Tanya tarikh di WhatsApp\" does not start with a verb (book, buy, try, start, get, see...)",
+    "fix": "label buttons with a verb and what the visitor gets (\"Book a room\", \"Start free trial\")",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "stagger",
+    "where": "div.wrap > div.grid.grid--top > div.span-6.stack-4 > ul.rows \"Asas Undangan bersampul, RSVP, lokasi da\"",
+    "msg": "3 rows start at 2 different left offsets (+0, +6, +4px)",
+    "fix": "start every row of the list on one left edge",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "contrast",
+    "where": "h2#reka-h \"Sepuluh reka bentuk, atau kad anda sendi\"",
+    "msg": "large text over a picture reads at 1.4:1 at its worst tenth (needs 3:1), on a busy ground",
+    "fix": "put the text on a calm part of the picture, or on a solid panel",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "links",
+    "where": "div.grid.grid--top > div.span-6.stack-4 > div.btn-row > a.btn.btn--glass \"Lihat contoh undangan\"",
+    "msg": "\"Lihat contoh undangan\" goes to /aina-hakim, which does not exist here",
+    "fix": "point every link at a real section, page or file",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "links",
+    "where": "div.span-2.footer__col:nth-of-type(5) > ul > li:nth-of-type(2) > a \"Buku tetamu\"",
+    "msg": "\"Buku tetamu\" goes to /aina-hakim/tetamu, which does not exist here",
+    "fix": "point every link at a real section, page or file",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "photo-set",
+    "where": "div.wrap.mo-pc__grid > div.mo-pc__visuals.frame > figure.mo-pc__visual:nth-of-type(1) > img \"photo-f18584874-960.jpg\"",
+    "msg": "4 photographs in more than one look: lightness from 0.29 to 0.67; saturation from 0.15 to 0.71; the odd one out is photo-f18584874-960.jpg",
+    "fix": "grade the photographs to one look (light, colour, warmth), or replace the odd one out",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "photo-credit",
+    "where": "(the page text)",
+    "msg": "1 library source (wikimedia): the page credits wikimedia; confirm each shows the client's own product, place or people",
+    "fix": "confirm the library photograph shows the client's own product, place or people; otherwise replace it",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "nav-labels",
+    "where": "div.nav__menu > div.wrap.grid > div.menu-col.span-3:nth-of-type(1) > a:nth-of-type(2) \"Buku tetamu QRUcapan video di majlis\"",
+    "msg": "\"Buku tetamu QRUcapan video di majlis\" opens a section headed \"Dari undangan hingga galeri\"",
+    "fix": "name each nav link after the heading of the section it opens",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "nav-labels",
+    "where": "div.nav__menu > div.wrap.grid > div.menu-col.span-3:nth-of-type(2) > a:nth-of-type(2) \"PakejAsas, Lengkap, Premium\"",
+    "msg": "\"PakejAsas, Lengkap, Premium\" opens a section headed \"Tiga pakej\"",
+    "fix": "name each nav link after the heading of the section it opens",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "nav-labels",
+    "where": "div.nav__item:nth-of-type(1) > div.nav__menu > div.wrap.grid > a.menu-card.span-3 \"QR di setiap meja Aktif dalam waktu majl\"",
+    "msg": "\"QR di setiap meja Aktif dalam waktu majl\" opens a section headed \"Dari undangan hingga galeri\"",
+    "fix": "name each nav link after the heading of the section it opens",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "nav-labels",
+    "where": "div.wrap.nav__bar > nav.nav__links > div.nav__item:nth-of-type(2) > a.nav__link \"Cara\"",
+    "msg": "\"Cara\" opens a section headed \"Dari undangan hingga galeri\"",
+    "fix": "name each nav link after the heading of the section it opens",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "label-centre",
+    "where": "header.nav > div.wrap.nav__bar > div.nav__actions > a.btn.btn--primary \"Tanya tarikh di WhatsApp\"",
+    "msg": "its label sits 30px off-centre (50px of room at the left, 20px at the right) (and 2 more like it: \"Tanya tarikh di WhatsApp\", \"Tanya tarikh di WhatsApp\")",
+    "fix": "centre the label in its button, or fill the empty side with an icon",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "nav-current",
+    "where": "header.nav",
+    "msg": "the nav stays on screen with 5 links to the page's sections, but never marks the one you are in (no link changes as the page scrolls)",
+    "fix": "mark the link of the section on screen (a colour, a weight or a line under it) as the visitor scrolls",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "visual-caption",
+    "where": "div.gal-ui > div.gal-ui__in.ui > div.gal-foot > span.gal-exp \"Dipadam pada 15 Jun 2027\"",
+    "msg": "a muted 13px line of 1 row sits 29px under the picture photo-f35236470-500.jpg: it reads as a caption: \"Dipadam pada 15 Jun 2027\"; no caption or description under any image, render or visual (house rule)",
+    "fix": "take the line away: no caption or description under, over or on any image, render or visual; a licence credit goes in one footer line",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "visual-caption",
+    "where": "div.gal-ui__in.ui > ul.gal-grid > li.gal-t:nth-of-type(4) > small \"0:24\"",
+    "msg": "a muted 11px line of 1 row sits 18px under the picture photo-f18584874-500.jpg: it reads as a caption: \"0:24\"; no caption or description under any image, render or visual (house rule)",
+    "fix": "take the line away: no caption or description under, over or on any image, render or visual; a licence credit goes in one footer line",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "visual-caption",
+    "where": "div.gal-ui__in.ui > ul.gal-grid > li.gal-t.gal-t--booth:nth-of-type(3) > em \"Aina & Hakim · 12.06.27\"",
+    "msg": "a muted 12px line of 1 row sits 6px under the picture photo-f89574706-500.jpg: it reads as a caption: \"Aina & Hakim · 12.06.27\"; no caption or description under any image, render or visual (house rule)",
+    "fix": "take the line away: no caption or description under, over or on any image, render or visual; a licence credit goes in one footer line",
+    "widths": [
+     1440,
+     390
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "visual-caption",
+    "where": "div.gal-ui__in.ui > ul.gal-grid > li.gal-t.gal-t--booth:nth-of-type(5) > em \"Aina & Hakim · 12.06.27\"",
+    "msg": "a muted 12px line of 1 row sits 6px under the picture photo-f31931258-500.jpg: it reads as a caption: \"Aina & Hakim · 12.06.27\"; no caption or description under any image, render or visual (house rule)",
+    "fix": "take the line away: no caption or description under, over or on any image, render or visual; a licence credit goes in one footer line",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "skip-link",
+    "where": "header.nav > div.wrap.nav__bar > a.skip-link:nth-of-type(1) \"Langkau ke kandungan\"",
+    "msg": "the first Tab stop is \"Langkau ke kandungan\", not a skip link: a keyboard user tabs through the whole nav on every visit",
+    "fix": "add the starter's skip link as the header's first child: <a class=\"skip-link\" href=\"#top\">Skip to content</a>",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "action-repeat",
+    "where": "header.nav > div.wrap.nav__bar > div.nav__actions > a.btn.btn--primary \"tanya tarikh di whatsapp\"",
+    "msg": "\"tanya tarikh di whatsapp\" shows 2 times on the first screen at 1440px (nav, hero): the nav's button and the hero's; nothing else on the screen may repeat it",
+    "fix": "show the action once a screen besides the nav's button: the hero's, the close's or the phone bar's, never all at once",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "container-edges",
+    "where": "div.wrap.mo-pc__grid > div.mo-pc__text > ol.mo-pc__steps > li.mo-pc__step:nth-of-type(1) \"Sebelum majlis: RSVP dan ucapan awal Sen\"",
+    "msg": "3 text blocks start on a left line at x 106, 26px from the container's left: text starts on the container's left, or on one split line (x 623, 732, 841) (also \"Di majlis: QR di setiap meja Tet\", \"Selepas majlis: galeri untuk and\") (it is in a scroll scene: told as a WARN) (SR-6)",
+    "fix": "start the text on the container's left, or on the one split line every split shares",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "split-pair",
+    "where": "section#galeri > div.wrap > div.grid.grid--top \"Galeri pengantin Setiap ucapan video, ga\"",
+    "msg": "the split's columns are off the page's one pair of lines: its right column starts at x 623, the first split's at 732 (it is in a scroll scene: told as a WARN) (SR-8)",
+    "fix": "start every split's right column on one shared line (wrap.left + k x (width + 24) / 12, k 5, 6 or 7; 6 on a place page) and end the left one 24px before it",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "nav",
+    "where": "header.nav > div.wrap.nav__bar > button.nav__toggle",
+    "msg": "the nav is lopsided: its last item ends 13px inside the content's edge (366px), while its first starts on the other edge",
+    "fix": "start the nav's first item and end its last on the content's two edges",
+    "widths": [
+     390
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "no-visual",
+    "where": "section#pakej \"Tiga pakej\"",
+    "msg": "pictures, effects and mocks cover 20% of this section; a feature section needs a visual (about 25% or more)",
+    "fix": "give the section a visual: a UI fragment on a ground, real icons, or a photograph that fits",
+    "widths": [
+     390
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "text-only",
+    "where": "section#faq \"Soalan pengantin\"",
+    "msg": "the section is only text: no picture, icon, mock or effect in it",
+    "fix": "give the section a visual: a photograph that fits, the real icons, or a UI fragment on a ground",
+    "widths": [
+     390
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "card-visual",
+    "where": "section#faq > div.wrap > div.group > div.faq \"Tetamu perlu muat turun aplikasi? Tidak.\"",
+    "msg": "3 cards hold only text: no picture, icon, UI fragment or effect in any of them",
+    "fix": "give the cards a visual: an inset panel with a UI fragment, a photograph or real icons",
+    "widths": [
+     390
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "section-gaps",
+    "where": "main#top > section.hero.hero--film / section#undangan",
+    "msg": "116px between these sections, -52% against the median 241px",
+    "fix": "use one gap between sections (all within 25% of each other)",
+    "widths": [
+     390
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "section-gaps",
+    "where": "section#faq / section#pakej",
+    "msg": "374px between these sections, +56% against the median 241px",
+    "fix": "use one gap between sections (all within 25% of each other)",
+    "widths": [
+     390
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "photo-set",
+    "where": "ol.mo-pc__steps > li.mo-pc__step:nth-of-type(1) > figure.mo-pc__visual > img \"photo-f18584874-500.jpg\"",
+    "msg": "6 photographs in more than one look: lightness from 0.32 to 0.74; saturation from 0.18 to 0.69; the odd one out is photo-f18584874-500.jpg",
+    "fix": "grade the photographs to one look (light, colour, warmth), or replace the odd one out",
+    "widths": [
+     390
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "label-centre",
+    "where": "div.hero__over > div > div.btn-row > a.btn.btn--primary \"Tanya tarikh di WhatsApp\"",
+    "msg": "its label sits 30px off-centre (58px of room at the left, 28px at the right)",
+    "fix": "centre the label in its button, or fill the empty side with an icon",
+    "widths": [
+     390
+    ],
+    "from": "consistency"
+   }
+  ],
+  "crashed": [],
+  "seconds": {
+   "consistency": 112,
+   "layout": 3
+  }
+ },
+ "open": [
+  {
+   "check": "card-visual",
+   "where": "div.wrap > div.grid.grid--top > div.span-6.stack-4 > ul.rows \"Asas Undangan bersampul, RSVP, lokasi da\"",
+   "msg": "3 cards hold only text: no picture, icon, UI fragment or effect in any of them",
+   "fix": "give the cards a visual: an inset panel with a UI fragment, a photograph or real icons",
+   "widths": [
+    390
+   ],
+   "from": "consistency",
+   "ids": [
+    "card-visual"
+   ],
+   "wheres": [
+    "div.wrap > div.grid.grid--top > div.span-6.stack-4 > ul.rows \"Asas Undangan bersampul, RSVP, lokasi da\""
+   ]
+  },
+  {
+   "check": "text-contrast",
+   "where": "div.group > div.faq > div.faq__item:nth-of-type(2) > p \"Sebelum majlis di pautan undangan, dan d\"",
+   "msg": "body text in #56605a on #fbf8f2 reads 6.16:1 (needs 7:1)",
+   "fix": "body text in the ink at 7:1 or more; grey (4.5:1 or more) only for captions and labels",
+   "widths": [
+    390
+   ],
+   "from": "consistency",
+   "ids": [
+    "text-contrast"
+   ],
+   "wheres": [
+    "div.group > div.faq > div.faq__item:nth-of-type(2) > p \"Sebelum majlis di pautan undangan, dan d\""
+   ]
+  }
+ ],
+ "waived": [
+  {
+   "check": "copy-headings",
+   "where": "div.mo-pc__text > ol.mo-pc__steps > li.mo-pc__step:nth-of-type(1) > h3 \"Sebelum majlis: RSVP dan ucapan awal\"",
+   "msg": "\"Sebelum majlis: RSVP dan ucapan awal\" names no product, part, place or section (6 headings like it; at most one brand line per page) (and 5 more like it: \"Di majlis: QR di setiap \", \"Selepas majlis: galeri u\", \"Sepuluh reka bentuk, ata\", \"Soalan pengantin\", ...)",
+   "fix": "name the thing in every heading: the product, a part, the place or a section noun",
+   "widths": [
+    1440
+   ],
+   "from": "consistency",
+   "ids": [
+    "copy-headings"
+   ],
+   "wheres": [
+    "div.mo-pc__text > ol.mo-pc__steps > li.mo-pc__step:nth-of-type(1) > h3 \"Sebelum majlis: RSVP dan ucapan awal\""
+   ],
+   "reason": "the chapter titles are Malay (majlis, RSVP, ucapan, QR, galeri are the product's own parts); the checker's noun list is English"
+  },
+  {
+   "check": "phone-number",
+   "where": "header.nav > div.wrap.nav__bar > div.nav__actions > a.btn.btn--primary \"https://wa.me/601111474745?text=Hai%20Se\"",
+   "msg": "a WhatsApp link calls a number in a real dialable format: \"https://wa.me/601111474745?text=Hai%20Se\"; a visitor can dial it and reach a stranger (and 3 more like it: div.hero__over > div > div.btn-row > a.btn.btn--primary, div.wrap > div.closing__cta.close--photo > div.section-head--split > a.btn.btn--primary, nav.actionbar > a.btn.btn--primary)",
+   "fix": "drop the number and its tel: link (a \"Request a call\" form may stand in), unless the brief gives the number",
+   "widths": [
+    1440
+   ],
+   "from": "consistency",
+   "ids": [
+    "phone-number"
+   ],
+   "wheres": [
+    "header.nav > div.wrap.nav__bar > div.nav__actions > a.btn.btn--primary \"https://wa.me/601111474745?text=Hai%20Se\""
+   ],
+   "reason": "the brief gives this WhatsApp number: it is Sepatah's own sales line (WA in the old Home.vue), only inside the wa.me link, never printed"
+  },
+  {
+   "check": "run-on",
+   "where": "h2#undangan-h \"Undangan yang dibuka dari WhatsApp\"",
+   "msg": "\"ndangan yang dibuka dari | WhatsApp\": the heading runs its first sentence into the grey second one with no stop",
+   "fix": "end the heading's first sentence with a full stop before its grey second one (\"Rooms and prices. Breakfast included.\")",
+   "widths": [
+    1440
+   ],
+   "from": "consistency",
+   "ids": [
+    "run-on"
+   ],
+   "wheres": [
+    "h2#undangan-h \"Undangan yang dibuka dari WhatsApp\""
+   ],
+   "reason": "one sentence; 'WhatsApp' is set in the italic accent colour as the heading's key word, not a grey second sentence"
+  },
+  {
+   "check": "hero-lines",
+   "where": "section.hero h1",
+   "msg": "the check fills the h1 to 40 characters (this hero's maxChars in heroes.json), not the page's own: it takes 4 lines at 390, 3 at most",
+   "fix": "the check fills the h1 to this hero's maxChars, not your own: take the next type pairing the deal printed (start.mjs); when the h1 is final and fits, waive it (target: section.hero h1)",
+   "widths": [
+    390
+   ],
+   "from": "layout",
+   "ids": [
+    "hero-lines"
+   ],
+   "wheres": [
+    "section.hero h1"
+   ],
+   "reason": "the stress pads the h1 to 40 characters in the film box (15ch); the page's own h1, 28 characters, sits on 2 lines at 1440 and 3 at 390, and both dealt pairings fail the padded test alike"
+  }
+ ],
+ "warnCount": 36,
+ "at": "2026-11-14T15:34:01.943Z",
+ "openTold": true
+}

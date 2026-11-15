@@ -11,7 +11,6 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
     "client-zip": "^2.5.1",
-    "leaflet": "^1.9.4",
     "qrcode": "^1.5.4",
     "vue": "^3.5.43",
     "vue-router": "^5.3.1"

@@ -11,6 +11,12 @@ const route = useRoute()
 const router = useRouter()
 const id = route.params.id
 const isNew = id === 'new'
+// jump list for the long form (wide screens); saved-event-only sections drop out for a new event,
+// invitation-only ones when the wedding is guestbook only
+const sections = computed(() => [
+  ['rsvp', 'RSVP', 1, 1], ['videos', 'Video wishes', 1], ['photos', 'Photos', 1], ['couple', 'Couple'], ['design', 'Design'], ['majlis', 'Majlis', 0, 1],
+  ['aturcara', 'Aturcara', 0, 1], ['contacts', 'Contacts', 0, 1], ['guestbook', 'Guestbook'], ['music', 'Music', 1, 1], ['delete', 'Delete event', 1],
+].filter(([, , saved, inv]) => !(saved && isNew) && !(inv && !f.value.rsvp)))
 
 const TS = ['window_start', 'window_end', 'expires_at']
 const toLocal = (iso) => {
@@ -28,11 +34,11 @@ function span(v) {
 }
 
 // every key the Design section edits; empty = use the preset's value
-const NO_THEME = { preset: 'zamrud', deep: '', accent: '', paper: '', font: '', art: '', art_mode: '', frame: '', strip: '', frame_fit: '', strip_fit: '', rights_at: '' }
+const NO_THEME = { preset: 'zamrud', deep: '', accent: '', paper: '', font: '', art: '', art_size: '', art_mode: '', frame: '', strip: '', frame_fit: '', strip_fit: '', rights_at: '' }
 const f = ref({
   slug: '', bride: '', groom: '', event_date: '', start_time: '', end_time: '', venue: '', address: '',
-  window_start: '', window_end: '', expires_at: '', default_lang: 'ms', published: false, couple_email: '',
-  content: { hosts: '', aturcara: [], contacts: [], music_path: '', lat: null, lng: null },
+  window_start: '', window_end: '', expires_at: '', default_lang: 'ms', published: false, couple_email: '', rsvp: false,
+  content: { hosts: '', aturcara: [], contacts: [], music_path: '', lat: null, lng: null, place_id: null },
   theme: { ...NO_THEME },
 })
 const state = ref(isNew ? 'ok' : 'loading') // loading | ok | missing
@@ -46,7 +52,7 @@ if (!isNew) {
     for (const k of TS) data[k] = toLocal(data[k])
     data.start_time = toLocal(data.starts_at).slice(11)
     data.end_time = toLocal(data.ends_at).slice(11)
-    data.content = { hosts: '', aturcara: [], contacts: [], music_path: '', lat: null, lng: null, ...data.content }
+    data.content = { hosts: '', aturcara: [], contacts: [], music_path: '', lat: null, lng: null, place_id: null, ...data.content }
     data.theme = { ...NO_THEME, ...data.theme }
     for (const k in data) if (data[k] === null) data[k] = ''
     f.value = data
@@ -64,40 +70,79 @@ if (!isNew) {
     .then(({ data, error }) => (error ? (rsvpErr.value = error.message) : (rsvps.value = data)))
 }
 
-// ---- video moderation: hidden wishes stay out of the couple's gallery, delete removes the file for good ----
-const wishes = ref(null)
-const wishErr = ref('')
-const wishBusy = ref('')
-async function loadWishes() {
-  wishErr.value = ''
-  const { data, error } = await sb.from('wishes').select('id, source, guest_name, path, duration, status, created_at')
+// ---- moderation: hidden videos/photos stay out of the couple's gallery, only approved photos reach the live screen,
+// delete removes the file for good ----
+const wishes = ref(null), photos = ref(null)
+const wishErr = ref(''), photoErr = ref('')
+const modBusy = ref('')
+const MOD = {
+  wishes: [wishes, wishErr, 'id, source, guest_name, path, duration, status, created_at', 'video'],
+  photos: [photos, photoErr, 'id, guest_name, path, status, created_at', 'photo'],
+}
+async function loadMedia(table) {
+  const [list, errR, cols] = MOD[table]
+  errR.value = ''
+  const { data, error } = await sb.from(table).select(cols)
     .eq('event_id', id).neq('status', 'uploading').order('created_at', { ascending: false })
-  if (error) return (wishErr.value = error.message)
+  if (error) return (errR.value = error.message)
   // ponytail: signed for 1 h, reload the page if a video stops playing
   const { data: urls, error: e2 } = data.length ? await sb.storage.from('media').createSignedUrls(data.map((w) => w.path), 3600) : { data: [] }
-  if (e2) return (wishErr.value = e2.message)
-  wishes.value = data.map((w, i) => ({ ...w, url: urls[i]?.signedUrl }))
+  if (e2) return (errR.value = e2.message)
+  list.value = data.map((w, i) => ({ ...w, url: urls[i]?.signedUrl }))
 }
-if (!isNew) loadWishes()
+if (!isNew) ['wishes', 'photos'].forEach(loadMedia)
 
-async function setWish(w, status) {
-  wishBusy.value = w.id
-  const { error } = await sb.from('wishes').update({ status }).eq('id', w.id)
-  wishBusy.value = ''
-  if (error) return (wishErr.value = error.message)
+async function setStatus(table, w, status) {
+  modBusy.value = w.id
+  const { error } = await sb.from(table).update({ status }).eq('id', w.id)
+  modBusy.value = ''
+  if (error) return (MOD[table][1].value = error.message)
   w.status = status
 }
 // file first: a failed row delete can be retried, a failed file delete would leave a guest's video behind
-async function delWish(w) {
-  if (!confirm(`Delete ${w.guest_name || 'this'} video for good?`)) return
-  wishBusy.value = w.id
-  wishErr.value = ''
+async function delMedia(table, w) {
+  const [list, errR, , noun] = MOD[table]
+  if (!confirm(`Delete ${w.guest_name || 'this'} ${noun} for good?`)) return
+  modBusy.value = w.id
+  errR.value = ''
   const { error } = await sb.storage.from('media').remove([w.path])
-  const { error: e2 } = error ? {} : await sb.from('wishes').delete().eq('id', w.id)
-  wishBusy.value = ''
-  if (error || e2) return (wishErr.value = (error || e2).message)
-  wishes.value = wishes.value.filter((x) => x !== w)
+  const { error: e2 } = error ? {} : await sb.from(table).delete().eq('id', w.id)
+  modBusy.value = ''
+  if (error || e2) return (errR.value = (error || e2).message)
+  list.value = list.value.filter((x) => x !== w)
 }
+// Same order as the expire function: files first, so a failure leaves the rows to retry with; the row delete cascades
+async function delEvent() {
+  if (prompt(`This deletes the invitation, RSVPs, every video and photo, and the couple's gallery. It can't be undone.\n\nType ${f.value.slug} to confirm.`)?.trim() !== f.value.slug) return
+  busy.value = true
+  err.value = ''
+  try {
+    const paths = []
+    for (const t of ['wishes', 'photos']) {
+      const { data, error } = await sb.from(t).select('path').eq('event_id', id)
+      if (error) throw error
+      paths.push(...data.map((r) => r.path))
+    }
+    for (let i = 0; i < paths.length; i += 1000) {
+      const { error } = await sb.storage.from('media').remove(paths.slice(i, i + 1000))
+      if (error) throw error
+    }
+    const { data: assets, error } = await sb.storage.from('assets').list(id, { limit: 1000 })
+    if (error) throw error
+    if (assets.length) {
+      const { error } = await sb.storage.from('assets').remove(assets.map((a) => `${id}/${a.name}`))
+      if (error) throw error
+    }
+    const { error: e2 } = await sb.from('events').delete().eq('id', id)
+    if (e2) throw e2
+    router.push('/admin')
+  } catch (e) {
+    err.value = `Delete stopped part way: ${e.message}. Try again to finish.`
+  } finally {
+    busy.value = false
+  }
+}
+
 const when = (iso) => new Date(iso).toLocaleString('en-MY', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })
 
 // stay = true for the music upload's auto-save, so the new song can be checked here
@@ -109,7 +154,7 @@ async function save(stay = false) {
   const row = {
     slug: v.slug.trim().toLowerCase(), bride: v.bride.trim(), groom: v.groom.trim(), event_date: v.event_date,
     venue: v.venue || null, address: v.address || null, default_lang: v.default_lang, published: v.published,
-    couple_email: v.couple_email || null, ...span(v),
+    couple_email: v.couple_email || null, rsvp: v.rsvp, ...span(v),
     content: { ...v.content, aturcara: v.content.aturcara.filter((a) => a.time || a.item), contacts: v.content.contacts.filter((c) => c.name || c.phone) },
     theme: Object.fromEntries(Object.entries(v.theme).filter(([, x]) => x)),
   }
@@ -192,6 +237,7 @@ async function onAsset(e, key, layout) {
   busy.value = false
   if (error) return (designErr.value = error.message)
   f.value.theme[key] = path
+  if (key === 'art') f.value.theme.art_size = [bmp.width, bmp.height] // lets the pages reserve the image's space before it loads
   if (layout) f.value.theme[`${key}_fit`] = fit // frame_fit / strip_fit; '' = made from the template
   f.value.theme.rights_at = new Date().toISOString() // when Mato last confirmed the couple's rights to an upload
   save(true)
@@ -199,6 +245,7 @@ async function onAsset(e, key, layout) {
 // ponytail: replaced/removed files stay in the assets bucket, like replaced music
 function dropAsset(key) {
   f.value.theme[key] = ''
+  if (key === 'art') f.value.theme.art_size = ''
   if (key !== 'art') f.value.theme[`${key}_fit`] = ''
   designWarn.value = ''
   save(true)
@@ -225,13 +272,14 @@ watch(() => [f.value.theme.strip, f.value.theme.strip_fit], async ([path, fit]) 
   if (!path) return
   const img = Object.assign(new Image(), { crossOrigin: 'anonymous', src: assetUrl(path) })
   const r = th.value
+  const logo = Object.assign(new Image(), { src: '/favicon.svg' })
   if (!(await img.decode().then(() => true, () => false))) return
-  await document.fonts.load(`80px "${r.font}"`)
+  await Promise.all([document.fonts.load(`80px "${r.font}"`), document.fonts.load('400 30px "Young Serif"'), logo.decode().catch(() => {})])
   const shot = Object.assign(document.createElement('canvas'), { width: 4, height: 3 })
   const sg = shot.getContext('2d')
   sg.fillStyle = '#9AA39C'
   sg.fillRect(0, 0, 4, 3)
-  const c = compose(fit || LAYOUTS.strip, [shot, shot, shot], { overlay: img, bg: r.card, fg: r.deep, sub: r.mut }, { couple: `${f.value.bride} & ${f.value.groom}`, date: f.value.event_date, font: r.font })
+  const c = compose(fit || LAYOUTS.strip, [shot, shot, shot], { overlay: img, bg: r.card, fg: r.deep, sub: r.mut }, { couple: `${f.value.bride} & ${f.value.groom}`, date: f.value.event_date, font: r.font, logo: logo.naturalWidth ? logo : null })
   if (path === f.value.theme.strip) stripSample.value = c.toDataURL('image/jpeg', 0.7)
 }, { immediate: true })
 const dlTemplate = (name) => Object.assign(document.createElement('a'), { href: template(name), download: `sepatah-${name}-template.png` }).click()
@@ -321,7 +369,7 @@ async function drawCard(ev, url) {
 </script>
 
 <template>
-  <div class="admin">
+  <div class="admin wide">
     <header class="bar">
       <RouterLink class="back" to="/admin" aria-label="Back"><svg class="ic"><use href="#i-back" /></svg></RouterLink>
       <div class="mark">Sepatah</div>
@@ -335,17 +383,20 @@ async function drawCard(ev, url) {
       <p>It may have been deleted.</p>
     </div>
 
-    <form v-else class="form" @submit.prevent="save()">
+    <div v-else class="ae">
+    <nav class="ae-nav" aria-label="Sections"><a v-for="[sid, label] in sections" :key="sid" :href="`#${sid}`">{{ label }}</a></nav>
+    <form class="form" @submit.prevent="save()">
       <div class="stack">
         <h1 class="h1">{{ isNew ? 'New event' : `${f.bride} & ${f.groom}` }}</h1>
         <p v-if="!isNew" class="hint left">
-          Invitation: <a :href="`/${f.slug}`" target="_blank">{{ origin }}/{{ f.slug }}</a><br />
+          <template v-if="f.rsvp">Invitation: <a :href="`/${f.slug}`" target="_blank">{{ origin }}/{{ f.slug }}</a><br /></template>
           QR guestbook: <a :href="`/${f.slug}/tetamu`" target="_blank">{{ origin }}/{{ f.slug }}/tetamu</a><br />
+          Live screen <em>(venue laptop, signed in; double-click for full screen)</em>: <a :href="`/admin/e/${id}/live`" target="_blank">{{ origin }}/admin/e/{{ id }}/live</a><br />
           Couple gallery <em>(secret, send to the couple only)</em>: <a :href="`/g/${f.gallery_token}`" target="_blank">{{ origin }}/g/{{ f.gallery_token }}</a>
         </p>
       </div>
 
-      <section v-if="!isNew" class="fs">
+      <section v-if="!isNew && f.rsvp" id="rsvp" class="fs">
         <header><h2>RSVP</h2></header>
         <div class="fs-body">
           <p v-if="rsvpErr" class="err" role="alert"><svg class="ic sm"><use href="#i-alert" /></svg>{{ rsvpErr }}</p>
@@ -362,10 +413,10 @@ async function drawCard(ev, url) {
         </div>
       </section>
 
-      <section v-if="!isNew" class="fs">
+      <section v-if="!isNew" id="videos" class="fs">
         <header><h2>Video wishes</h2><p class="hint left">Hidden videos stay out of the couple's gallery. Delete is permanent.</p></header>
         <div class="fs-body">
-          <p v-if="wishErr" class="err" role="alert"><svg class="ic sm"><use href="#i-alert" /></svg>{{ wishErr }} <button type="button" class="linkbtn" @click="loadWishes">Reload</button></p>
+          <p v-if="wishErr" class="err" role="alert"><svg class="ic sm"><use href="#i-alert" /></svg>{{ wishErr }} <button type="button" class="linkbtn" @click="loadMedia('wishes')">Reload</button></p>
           <div v-if="!wishes && !wishErr" class="vids"><div class="skel" style="aspect-ratio: 3 / 4" v-for="i in 2" :key="i"></div></div>
           <p v-else-if="wishes && !wishes.length" class="hint left">No videos yet. Pre-event wishes and QR guestbook videos show up here.</p>
           <div v-else-if="wishes" class="vids">
@@ -374,8 +425,8 @@ async function drawCard(ev, url) {
               <figcaption>
                 <span>{{ w.guest_name || 'Anonymous' }}<br /><small>{{ w.source === 'pre' ? 'Pre-event' : 'Guestbook' }} · {{ when(w.created_at) }}<template v-if="w.duration"> · {{ fmt(w.duration) }}</template><template v-if="w.status === 'hidden'"> · Hidden</template></small></span>
                 <span class="row">
-                  <button type="button" class="btn sm" :disabled="wishBusy === w.id" @click="setWish(w, w.status === 'hidden' ? 'visible' : 'hidden')">{{ w.status === 'hidden' ? 'Show' : 'Hide' }}</button>
-                  <button type="button" class="back" aria-label="Delete" :disabled="wishBusy === w.id" @click="delWish(w)"><svg class="ic sm"><use href="#i-x" /></svg></button>
+                  <button type="button" class="btn sm" :disabled="modBusy === w.id" @click="setStatus('wishes', w, w.status === 'hidden' ? 'visible' : 'hidden')">{{ w.status === 'hidden' ? 'Show' : 'Hide' }}</button>
+                  <button type="button" class="back" aria-label="Delete" :disabled="modBusy === w.id" @click="delMedia('wishes', w)"><svg class="ic sm"><use href="#i-x" /></svg></button>
                 </span>
               </figcaption>
             </figure>
@@ -383,22 +434,47 @@ async function drawCard(ev, url) {
         </div>
       </section>
 
-      <section class="fs">
-        <header><h2>Couple</h2><p class="hint left">Names as they appear on the invitation.</p></header>
+      <section v-if="!isNew" id="photos" class="fs">
+        <header><h2>Photos</h2><p class="hint left">Approved photos go on the live screen. Pending ones are only in the couple's gallery, hidden ones nowhere. Delete is permanent.</p></header>
         <div class="fs-body">
-          <div class="cols">
-            <label class="field"><span>Bride</span><input v-model="f.bride" required maxlength="40" /></label>
-            <label class="field"><span>Groom</span><input v-model="f.groom" required maxlength="40" /></label>
+          <p v-if="photoErr" class="err" role="alert"><svg class="ic sm"><use href="#i-alert" /></svg>{{ photoErr }} <button type="button" class="linkbtn" @click="loadMedia('photos')">Reload</button></p>
+          <div v-if="!photos && !photoErr" class="vids"><div class="skel" style="aspect-ratio: 3 / 4" v-for="i in 2" :key="i"></div></div>
+          <p v-else-if="photos && !photos.length" class="hint left">No photos yet. QR guestbook photos show up here.</p>
+          <button v-if="photos" type="button" class="linkbtn" style="align-self: start" @click="loadMedia('photos')">Check for new photos</button>
+          <div v-if="photos?.length" class="vids">
+            <figure v-for="p in photos" :key="p.id" class="vid" :class="{ hid: p.status === 'hidden' }">
+              <img :src="p.url" :alt="`Photo from ${p.guest_name || 'a guest'}`" loading="lazy" />
+              <figcaption>
+                <span>{{ p.guest_name || 'Anonymous' }}<br /><small>{{ when(p.created_at) }} · {{ { pending: 'Pending', approved: 'On live screen', hidden: 'Hidden' }[p.status] }}</small></span>
+                <span class="row">
+                  <button v-if="p.status !== 'approved'" type="button" class="btn sm" :disabled="modBusy === p.id" @click="setStatus('photos', p, 'approved')">Approve</button>
+                  <button v-if="p.status !== 'hidden'" type="button" class="btn sm" :disabled="modBusy === p.id" @click="setStatus('photos', p, 'hidden')">Hide</button>
+                  <button type="button" class="back" aria-label="Delete" :disabled="modBusy === p.id" @click="delMedia('photos', p)"><svg class="ic sm"><use href="#i-x" /></svg></button>
+                </span>
+              </figcaption>
+            </figure>
           </div>
-          <label class="field"><span>Invitation link</span>
-            <span class="affix"><span>{{ host }}/</span><input v-model="f.slug" required pattern="[a-z0-9\-]{2,60}" placeholder="aina-hakim" /></span>
-          </label>
-          <label class="field"><span>Couple email <em>(gallery reminders)</em></span><input v-model="f.couple_email" type="email" /></label>
-          <label class="field"><span>Hosts <em>(parents' names, one per line)</em></span><textarea v-model="f.content.hosts"></textarea></label>
         </div>
       </section>
 
-      <section class="fs">
+      <section id="couple" class="fs">
+        <header><h2>Couple</h2><p class="hint left">Names as they appear on the guestbook and table card.</p></header>
+        <div class="fs-body">
+          <label class="check-row"><input v-model="f.rsvp" type="checkbox" /> Invitation + RSVP <em>(add-on: venue, aturcara, contacts, music)</em></label>
+          <div class="cols c3">
+            <label class="field"><span>Bride</span><input v-model="f.bride" required maxlength="40" /></label>
+            <label class="field"><span>Groom</span><input v-model="f.groom" required maxlength="40" /></label>
+            <label class="field"><span>Wedding date</span><input v-model="f.event_date" type="date" required /></label>
+          </div>
+          <label class="field"><span>Wedding link</span>
+            <span class="affix"><span>{{ host }}/</span><input v-model="f.slug" required pattern="[a-z0-9\-]{2,60}" placeholder="aina-hakim" /></span>
+          </label>
+          <label class="field"><span>Couple email <em>(gallery reminders)</em></span><input v-model="f.couple_email" type="email" /></label>
+          <label v-if="f.rsvp" class="field"><span>Hosts <em>(parents' names, one per line)</em></span><textarea v-model="f.content.hosts"></textarea></label>
+        </div>
+      </section>
+
+      <section id="design" class="fs">
         <header><h2>Design</h2><p class="hint left">Colours, font and the couple's artwork. Used on the invitation, guestbook, photo frames and couple gallery.</p></header>
         <div class="fs-body">
           <div class="swatches" role="radiogroup" aria-label="Preset">
@@ -462,23 +538,22 @@ async function drawCard(ev, url) {
         </div>
       </section>
 
-      <section class="fs">
-        <header><h2>Majlis</h2><p class="hint left">When and where. Guests get Google Maps and Waze buttons.</p></header>
+      <section v-if="f.rsvp" id="majlis" class="fs">
+        <header><h2>Majlis</h2><p class="hint left">When and where, on the invitation. Guests get Google Maps and Waze buttons.</p></header>
         <div class="fs-body">
-          <div class="cols c3">
-            <label class="field"><span>Date</span><input v-model="f.event_date" type="date" required /></label>
+          <div class="cols">
             <label class="field"><span>Starts</span><input v-model="f.start_time" type="time" /></label>
             <label class="field"><span>Ends</span><input v-model="f.end_time" type="time" /></label>
           </div>
           <label class="field"><span>Venue</span><input v-model="f.venue" placeholder="Dewan Seri Melati" /></label>
           <div class="field"><span>Location</span>
-            <MapPicker v-model:lat="f.content.lat" v-model:lng="f.content.lng" @place="onPlace" />
+            <MapPicker v-model:lat="f.content.lat" v-model:lng="f.content.lng" v-model:place-id="f.content.place_id" @place="onPlace" />
           </div>
           <label class="field"><span>Address <em>(shown on the invitation)</em></span><textarea v-model="f.address"></textarea></label>
         </div>
       </section>
 
-      <section class="fs">
+      <section v-if="f.rsvp" id="aturcara" class="fs">
         <header><h2>Aturcara</h2><p class="hint left">The day's programme.</p></header>
         <div class="fs-body">
           <div v-for="(a, i) in f.content.aturcara" :key="i" class="row">
@@ -490,7 +565,7 @@ async function drawCard(ev, url) {
         </div>
       </section>
 
-      <section class="fs">
+      <section v-if="f.rsvp" id="contacts" class="fs">
         <header><h2>Contacts</h2><p class="hint left">Who guests can call or WhatsApp.</p></header>
         <div class="fs-body">
           <div v-for="(c, i) in f.content.contacts" :key="i" class="row">
@@ -502,7 +577,7 @@ async function drawCard(ev, url) {
         </div>
       </section>
 
-      <section class="fs">
+      <section id="guestbook" class="fs">
         <header><h2>Guestbook</h2><p class="hint left">When the QR takes video wishes, and when the gallery is wiped.</p></header>
         <div class="fs-body">
           <div class="cols">
@@ -543,13 +618,20 @@ async function drawCard(ev, url) {
         </div>
       </section>
 
-      <section v-if="!isNew" class="fs">
+      <section v-if="!isNew && f.rsvp" id="music" class="fs">
         <header><h2>Music</h2><p class="hint left">Plays after "Buka Undangan".</p></header>
         <div class="fs-body">
           <audio v-if="f.content.music_path" :src="assetUrl(f.content.music_path)" controls style="width: 100%"></audio>
           <label class="field"><span>{{ f.content.music_path ? 'Replace' : 'Upload' }} MP3 <em>(max 10 MB)</em></span>
             <input type="file" accept="audio/mpeg" :disabled="busy" @change="onMusic" />
           </label>
+        </div>
+      </section>
+
+      <section v-if="!isNew" id="delete" class="fs">
+        <header><h2>Delete event</h2><p class="hint left">Removes the invitation, RSVPs, every video and photo, and the couple's gallery for good. To only end the gallery sooner, change "Gallery deleted at" instead.</p></header>
+        <div class="fs-body">
+          <button type="button" class="btn sm" style="align-self: start; color: var(--err)" :disabled="busy" @click="delEvent">Delete event</button>
         </div>
       </section>
 
@@ -560,5 +642,6 @@ async function drawCard(ev, url) {
         <button class="btn primary" :disabled="busy">{{ busy ? 'Saving' : isNew ? 'Create event' : 'Save' }}</button>
       </div>
     </form>
+    </div>
   </div>
 </template>

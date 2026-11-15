@@ -1,8 +1,9 @@
 <script setup>
 // Invitation: "Buka Undangan" cover → details, countdown, RSVP → optional pre-event video wish.
 import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { sb, assetUrl, useEvent } from '../lib.js'
+import { kadBox } from '../themes.js'
 import { t, initLang, dateStr, timeStr, LangToggle } from '../i18n.js'
 import { ics, intl, left } from '../invite.js'
 import Recorder from '../Recorder.vue'
@@ -10,10 +11,17 @@ import Recorder from '../Recorder.vue'
 const UNITS = ['days', 'hours', 'mins', 'secs']
 
 const slug = useRoute().params.slug
-const { ev, state, load } = useEvent(slug, (e) => initLang(e.default_lang))
+const router = useRouter()
+// guestbook-only wedding: no invitation, the link goes straight to the guestbook
+const { ev, state, load } = useEvent(slug, (e) => {
+  if (e.rsvp === false) return router.replace(`/${slug}/tetamu`) // === so a DB without the column keeps today's invitation
+  initLang(e.default_lang)
+  document.title = `${e.bride} & ${e.groom} | Sepatah`
+})
 const couple = computed(() => ev.value && `${ev.value.bride} & ${ev.value.groom}`)
 const c = computed(() => ev.value?.content || {})
 const art = computed(() => ev.value?.theme?.art && assetUrl(ev.value.theme.art)) // the couple's own design
+const artSize = computed(() => ev.value?.theme?.art_size || null)
 const kadMode = computed(() => ev.value?.theme?.art_mode === 'kad') // the image already has the names; otherwise it's a frame we write in
 
 const screen = ref('cover') // cover | main | wish | done
@@ -90,12 +98,12 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <Recorder v-if="screen === 'wish'" :slug="slug" source="pre" @back="backToRsvp" @done="go('done')" />
+  <Recorder v-if="screen === 'wish'" :slug="slug" source="pre" :couple="couple" :art="kadMode ? null : art" :art-size="artSize" @back="backToRsvp" @done="go('done')" />
 
   <div v-else class="shell">
     <div class="app">
       <header class="bar">
-        <div class="mark">Sepatah</div>
+        <div class="mark sm quiet">Sepatah</div>
         <div class="row">
           <button v-if="screen !== 'cover' && c.music_path" class="back" :aria-label="t('music')" :aria-pressed="playing" @click="toggleMusic">
             <svg class="ic"><use href="#i-music" /></svg>
@@ -146,15 +154,15 @@ onBeforeUnmount(() => {
       </main>
 
       <main v-else class="screen invite">
-        <div v-if="art && kadMode" class="hero"><img class="kad" :src="art" :alt="t('kadAlt', { couple })" /></div>
+        <div v-if="art && kadMode" class="hero"><h1 class="sr">{{ couple }}</h1><img class="kad" :src="art" :style="kadBox(artSize, 72)" :alt="t('kadAlt', { couple })" /></div>
         <div v-else-if="art" class="hero">
           <p v-if="c.hosts" class="txt" style="white-space: pre-line"><b>{{ c.hosts }}</b></p>
           <p v-if="c.hosts" class="lede">{{ t('inviteIntro') }}</p>
           <div class="framed">
-            <img :src="art" alt="" />
+            <img :src="art" :width="artSize?.[0]" :height="artSize?.[1]" alt="" />
             <div>
               <div class="eyebrow">{{ t('inviteEyebrow') }}</div>
-              <div class="names"><span>{{ ev.bride }}</span><span class="amp">&amp;</span><span>{{ ev.groom }}</span></div>
+              <h1 class="names"><span>{{ ev.bride }}</span><span class="amp">&amp;</span><span>{{ ev.groom }}</span></h1>
               <div class="orn"></div>
               <p class="lede">{{ dateStr(ev.event_date) }}</p>
             </div>
@@ -164,7 +172,7 @@ onBeforeUnmount(() => {
           <div class="eyebrow">{{ t('inviteEyebrow') }}</div>
           <p v-if="c.hosts" class="txt" style="white-space: pre-line"><b>{{ c.hosts }}</b></p>
           <p v-if="c.hosts" class="lede">{{ t('inviteIntro') }}</p>
-          <div class="names"><span>{{ ev.bride }}</span><span class="amp">&amp;</span><span>{{ ev.groom }}</span></div>
+          <h1 class="names"><span>{{ ev.bride }}</span><span class="amp">&amp;</span><span>{{ ev.groom }}</span></h1>
           <div class="orn"></div>
           <p class="lede">{{ dateStr(ev.event_date) }}</p>
         </div>
@@ -181,7 +189,7 @@ onBeforeUnmount(() => {
           <p class="big">{{ dateStr(ev.event_date) }}<template v-if="time"><br />{{ time }}</template></p>
           <p v-if="ev.venue || ev.address" class="txt" style="white-space: pre-line"><b v-if="ev.venue">{{ ev.venue }}</b>{{ ev.venue && ev.address ? '\n' : '' }}{{ ev.address }}</p>
           <div v-if="pin || q" class="duo">
-            <a class="btn sm" :href="`https://www.google.com/maps/search/?api=1&query=${pin || q}`" target="_blank" rel="noopener"><svg class="ic sm"><use href="#i-pin" /></svg>Google Maps</a>
+            <a class="btn sm" :href="`https://www.google.com/maps/search/?api=1&query=${pin || q}${c.place_id ? `&query_place_id=${c.place_id}` : ''}`" target="_blank" rel="noopener"><svg class="ic sm"><use href="#i-pin" /></svg>Google Maps</a>
             <a class="btn sm" :href="`https://waze.com/ul?${pin ? `ll=${pin}` : `q=${q}`}&navigate=yes`" target="_blank" rel="noopener"><svg class="ic sm"><use href="#i-pin" /></svg>Waze</a>
           </div>
           <!-- ponytail: data: URL download; check on a real iPhone that it offers "Add to Calendar" -->
