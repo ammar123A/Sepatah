@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="ms" data-type="service" data-radius="soft" data-buttons="solid" data-motion>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sepatah: photograph credits</title>
+<meta name="description" content="The photographers, licences and source pages of the photographs on the Sepatah website.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Sepatah: undangan perkahwinan digital">
+<meta property="og:description" content="Satu pautan WhatsApp untuk RSVP, ucapan video dan buku tetamu QR.">
+<meta property="og:image" content="/share.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#f2ede3">
+<!-- <link rel="canonical" href="https://[the client's domain]/"> : the domain is still to come -->
+<meta name="site-kind" content="other">
+<meta name="page-type" content="service">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Instrument+Sans:wdth,wght@75..100,400..600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/system.css">
+<link rel="stylesheet" href="assets/ui/cards.css">
+<link rel="stylesheet" href="assets/motion/motion.css">
+<link rel="stylesheet" href="assets/layout/layout.css">
+<link rel="stylesheet" href="assets/icons/icon.css">
+<link rel="stylesheet" href="assets/moments/pinned-chapters/moment.css">
+<link rel="stylesheet" href="assets/moments/word-highlight/moment.css">
+<!-- palette: the client's own colours through start.mjs brand (the logo's paper, deep green and terracotta) -->
+<style>
+:root {
+  --p-bg: #f2ede3; --p-surface: #fbf8f2; --p-ink: #1f3a2d; --p-muted: #5c635d;
+  --p-accent: #c4472d; --p-accent-ink: #ffffff; --p-action: #c4472d; --p-action-ink: #ffffff;
+  --p-inv-bg: #1f3a2d; --p-inv-surface: #2c4538; --p-inv-ink: #f2ede3; --p-inv-muted: #a9afa3;
+  --p-inv-accent: #f2ede3; --p-inv-accent-ink: #1f3a2d; --p-inv-action: #f2ede3; --p-inv-action-ink: #1f3a2d;
+  --font-display: "Instrument Serif", Georgia, serif;
+  --font-text: "Instrument Sans", system-ui, sans-serif;
+  --display-weight: 400;
+  --display-tracking: -0.012em;
+  --display-tracking-xl: -0.016em;
+  --ly-scale: 1.12;
+}
+</style>
+<!-- page CSS: only inside the visuals (the invitation on a phone, the ten design tiles) -->
+<style>
+  .nav__logo img { display: block; height: 26px; width: auto; }
+  /* the invitation guests open, drawn in live HTML at a phone's size */
+  .device { width: min(320px, 100%); margin-inline: auto; padding: 10px; border-radius: 44px; background: var(--p-ink); }
+  .device__screen { display: flex; flex-direction: column; gap: 12px; padding: 18px 14px 20px; border-radius: 34px; background: var(--p-bg); }
+  .inv-arch { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 64px 16px 28px; border-radius: 999px 999px 6px 6px; background: var(--p-inv-bg); color: var(--p-inv-ink); text-align: center; }
+  .inv-arch small { font-size: 13px; color: var(--p-inv-muted); }
+  .inv-names { font: 400 46px/1 var(--font-display); }
+  .inv-names i { display: block; margin: 4px 0; font-size: 24px; font-style: normal; color: var(--p-inv-muted); }
+  .inv-count { display: grid; grid-template-columns: repeat(4, 1fr); text-align: center; font: 400 26px/1 var(--font-display); }
+  .inv-count small { display: block; margin-top: 4px; font: 500 13px/1 var(--font-text); color: var(--p-muted); }
+  .inv-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .inv-seg span, .inv-send { display: grid; place-items: center; min-height: 44px; border-radius: 12px; font-size: 14px; font-weight: 500; }
+  .inv-seg span { border: 1px solid var(--line); background: #fff; }
+  .inv-seg .on { border-color: var(--p-inv-bg); background: var(--p-inv-bg); color: var(--p-inv-ink); }
+  .inv-send { background: var(--p-action); color: var(--p-action-ink); }
+  /* each design drawn in its own colours and names face: the arch the invitation opens on */
+  .arches { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--s-5); }
+  .arches li { display: flex; flex-direction: column; gap: var(--s-3); padding: var(--s-4); border-radius: var(--r-lg); font-size: 14px; font-weight: 500; }
+  .arches i { display: grid; place-items: center; aspect-ratio: 5 / 4; padding-top: 12%; border-radius: 999px 999px 4px 4px; font-style: normal; font-size: 30px; line-height: 1; white-space: nowrap; }
+  @media (max-width: 639px) { .arches { grid-template-columns: 1fr 1fr; gap: var(--s-3); } .arches i { font-size: 24px; } }
+</style>
+<script>document.documentElement.classList.add('m-enter');setTimeout(()=>document.documentElement.classList.add('m-enter-done'),700)</script>
+<script>document.documentElement.classList.add('mo-js');setTimeout(()=>document.documentElement.classList.add('mo-safe'),2500)</script>
+<link rel="modulepreload" href="assets/moments/moments.js">
+<link rel="modulepreload" href="assets/moments/lib.js">
+<link rel="modulepreload" href="assets/moments/pinned-chapters/moment.js">
+<link rel="modulepreload" href="assets/moments/word-highlight/moment.js">
+</head>
+<body>
+<!-- type: service (site-kind other)
+     deal: hero film (a strong photograph, no film: no play control), nav nav-mega, close close-photo, footer footer-columns,
+           rhythm dark-band (#reka), buttons solid, mark wordmark (replaced by the client's logo, logo.svg)
+     palette: the client's own (start.mjs brand): paper, deep green, terracotta from the logo handoff
+     type: instrument-serif (the deal's third: the first two are grotesks and the client's logo and names are serifs)
+     moments: pinned-chapters (#cara), word-highlight (#galeri) -->
+
+<header class="nav">
+  <div class="wrap nav__bar">
+    <a class="skip-link" href="#top">Langkau ke kandungan</a>
+    <a class="nav__logo" href="#top"><img src="/logo.svg" alt="Sepatah" width="318" height="60"></a>
+    <nav class="nav__links" aria-label="Utama">
+      <div class="nav__item">
+        <a class="nav__link" href="#undangan">Undangan <svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        <div class="nav__menu">
+          <div class="wrap grid">
+            <div class="menu-col span-3">
+              <p class="t-label">Untuk tetamu</p>
+              <a href="#undangan">Undangan<span>Sampul, RSVP dan lokasi</span></a>
+              <a href="#cara">Buku tetamu QR<span>Ucapan video di majlis</span></a>
+              <a href="#reka">Reka bentuk<span>Sepuluh warna atau kad anda</span></a>
+            </div>
+            <div class="menu-col span-3">
+              <p class="t-label">Untuk pengantin</p>
+              <a href="#galeri">Galeri peribadi<span>Semua ucapan dan gambar</span></a>
+              <a href="#pakej">Pakej<span>Asas, Lengkap, Premium</span></a>
+            </div>
+            <a class="menu-card span-3 start-10" href="#cara">
+              <div class="panel"><img class="frame__img" src="assets/img/photo-f73279180-500.jpg" alt="Meja jamuan perkahwinan bertema putih dan biru" width="500" height="307" data-source="stand-in" data-subject="wedding table"></div>
+              <span class="t-card">QR di setiap meja</span>
+              <span class="t-small muted">Aktif dalam waktu majlis sahaja</span>
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="nav__item"><a class="nav__link" href="#cara">Cara</a></div>
+      <div class="nav__item"><a class="nav__link" href="#reka">Reka bentuk</a></div>
+      <div class="nav__item"><a class="nav__link" href="#pakej">Pakej</a></div>
+      <div class="nav__item"><a class="nav__link" href="#soalan">Soalan</a></div>
+    </nav>
+    <div class="nav__actions">
+      <a class="btn btn--primary" href="https://wa.me/601111474745?text=Hai%20Sepatah%2C%20saya%20berminat%20dengan%20undangan%20digital.%20Tarikh%20majlis%3A%20" target="_blank" rel="noopener">Tanya tarikh di WhatsApp</a>
+    </div>
+    <button class="nav__toggle" type="button" aria-expanded="false" aria-label="Menu">
+      <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M2 5h14M2 13h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+</header>
+
+<main id="top">
+  <p><a class="link" href="index.html">Sepatah</a></p>
+  <section class="credits-list" id="credits" aria-labelledby="credits-h">
+    <h1 id="credits-h">Photograph credits</h1>
+    <ul>
+      <li><a href="https://commons.wikimedia.org/wiki/File:Pelamin_Malaysian_Wedding_in_White.jpg">shahnazshahizan</a>, <a href="https://creativecommons.org/licenses/by-sa/3.0">CC BY-SA 3.0</a></li>
+      <li><a href="https://commons.wikimedia.org/wiki/File:Celebration_-_Malay_wedding_-_Flickr_-_GeorgeTan%5E1.jpg">Walk around the RED DOT from Singapore</a>, <a href="http://creativecommons.org/publicdomain/zero/1.0/deed.en">CC0</a></li>
+      <li><a href="https://commons.wikimedia.org/wiki/File:Wedding_Table_(14639143086).jpg">outreachr.com</a>, <a href="https://creativecommons.org/licenses/by/2.0">CC BY 2.0</a></li>
+      <li><a href="https://commons.wikimedia.org/wiki/File:Wedding_rings_and_roses.jpg">Dako99</a>, <a href="https://creativecommons.org/licenses/by-sa/3.0">CC BY-SA 3.0</a></li>
+      <li><a href="https://commons.wikimedia.org/wiki/File:Beach_Wedding_Bouquet.jpg">Simple Maui Wedding</a>, <a href="https://creativecommons.org/licenses/by/2.5">CC BY 2.5</a></li>
+      <li><a href="https://commons.wikimedia.org/wiki/File:Placing_a_wedding_ring.jpg">Petar Milošević</a>, <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a></li>
+    </ul>
+  </section>
+</main>
+
+<footer class="footer closing" id="contact" aria-labelledby="close-h">
+  <div class="wrap">
+    <div class="closing__cta close--photo">
+      <div class="section-head--split">
+        <div><h2 id="close-h">Beritahu kami tarikh majlis anda</h2><p class="t-lead">Kami balas di WhatsApp dengan pakej yang sesuai.</p></div>
+        <a class="btn btn--primary" href="https://wa.me/601111474745?text=Hai%20Sepatah%2C%20saya%20berminat%20dengan%20undangan%20digital.%20Tarikh%20majlis%3A%20" target="_blank" rel="noopener">Tanya tarikh di WhatsApp</a>
+      </div>
+      <div class="close__media"><img src="assets/img/photo-f200541151-960.jpg" srcset="assets/img/photo-f200541151-500.jpg 500w, /assets/img/photo-f200541151-960.jpg 960w" sizes="100vw" alt="Pelamin putih dengan sofa, tanglung dan bunga di bawah anjung rumah" width="960" height="722" loading="lazy" decoding="async" data-source="stand-in" data-subject="pelamin"></div>
+    </div>
+    <div class="closing__links">
+      <div class="grid">
+        <div class="span-4 stack-4">
+          <a class="nav__logo" href="#top"><img src="/logo.svg" alt="Sepatah" width="318" height="60"></a>
+          <p class="footer__lede">Undangan digital, buku tetamu QR dan galeri untuk majlis perkahwinan.</p>
+        </div>
+        <div class="span-2 footer__col"><h3>Undangan</h3><ul><li><a href="#undangan">Undangan</a></li><li><a href="#reka">Reka bentuk</a></li></ul></div>
+        <div class="span-2 footer__col"><h3>Majlis</h3><ul><li><a href="#cara">Buku tetamu QR</a></li><li><a href="#galeri">Galeri</a></li></ul></div>
+        <div class="span-2 footer__col"><h3>Pakej</h3><ul><li><a href="#pakej">Harga</a></li><li><a href="#soalan">Soalan</a></li></ul></div>
+        <div class="span-2 footer__col"><h3>Contoh</h3><ul><li><a href="/aina-hakim">Undangan</a></li><li><a href="/aina-hakim/tetamu">Buku tetamu</a></li></ul></div>
+      </div>
+      <div class="footer__legal">
+        <span>&copy; 2026 Sepatah</span>
+        <div class="socials"><a href="https://instagram.com/sepatah.my" aria-label="Instagram Sepatah" target="_blank" rel="noopener"><svg class="ic ic-svg ic-24" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M7.0301.084c-1.2768.0602-2.1487.264-2.911.5634-.7888.3075-1.4575.72-2.1228 1.3877-.6652.6677-1.075 1.3368-1.3802 2.127-.2954.7638-.4956 1.6365-.552 2.914-.0564 1.2775-.0689 1.6882-.0626 4.947.0062 3.2586.0206 3.6671.0825 4.9473.061 1.2765.264 2.1482.5635 2.9107.308.7889.72 1.4573 1.388 2.1228.6679.6655 1.3365 1.0743 2.1285 1.38.7632.295 1.6361.4961 2.9134.552 1.2773.056 1.6884.069 4.9462.0627 3.2578-.0062 3.668-.0207 4.9478-.0814 1.28-.0607 2.147-.2652 2.9098-.5633.7889-.3086 1.4578-.72 2.1228-1.3881.665-.6682 1.0745-1.3378 1.3795-2.1284.2957-.7632.4966-1.636.552-2.9124.056-1.2809.0692-1.6898.063-4.948-.0063-3.2583-.021-3.6668-.0817-4.9465-.0607-1.2797-.264-2.1487-.5633-2.9117-.3084-.7889-.72-1.4568-1.3876-2.1228C21.2982 1.33 20.628.9208 19.8378.6165 19.074.321 18.2017.1197 16.9244.0645 15.6471.0093 15.236-.005 11.977.0014 8.718.0076 8.31.0215 7.0301.0839m.1402 21.6932c-1.17-.0509-1.8053-.2453-2.2287-.408-.5606-.216-.96-.4771-1.3819-.895-.422-.4178-.6811-.8186-.9-1.378-.1644-.4234-.3624-1.058-.4171-2.228-.0595-1.2645-.072-1.6442-.079-4.848-.007-3.2037.0053-3.583.0607-4.848.05-1.169.2456-1.805.408-2.2282.216-.5613.4762-.96.895-1.3816.4188-.4217.8184-.6814 1.3783-.9003.423-.1651 1.0575-.3614 2.227-.4171 1.2655-.06 1.6447-.072 4.848-.079 3.2033-.007 3.5835.005 4.8495.0608 1.169.0508 1.8053.2445 2.228.408.5608.216.96.4754 1.3816.895.4217.4194.6816.8176.9005 1.3787.1653.4217.3617 1.056.4169 2.2263.0602 1.2655.0739 1.645.0796 4.848.0058 3.203-.0055 3.5834-.061 4.848-.051 1.17-.245 1.8055-.408 2.2294-.216.5604-.4763.96-.8954 1.3814-.419.4215-.8181.6811-1.3783.9-.4224.1649-1.0577.3617-2.2262.4174-1.2656.0595-1.6448.072-4.8493.079-3.2045.007-3.5825-.006-4.848-.0608M16.953 5.5864A1.44 1.44 0 1 0 18.39 4.144a1.44 1.44 0 0 0-1.437 1.4424M5.8385 12.012c.0067 3.4032 2.7706 6.1557 6.173 6.1493 3.4026-.0065 6.157-2.7701 6.1506-6.1733-.0065-3.4032-2.771-6.1565-6.174-6.1498-3.403.0067-6.156 2.771-6.1496 6.1738M8 12.0077a4 4 0 1 1 4.008 3.9921A3.9996 3.9996 0 0 1 8 12.0077"/></svg></a></div>
+        <a class="credits" href="/credits.html">Photographs via Wikimedia Commons</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script type="module" src="assets/system.js"></script>
+<script type="module" src="assets/motion/motion.js"></script>
+<script type="module" src="assets/layout/layout.js"></script>
+</body>
+</html>

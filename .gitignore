@@ -3,3 +3,5 @@ dist
 .env
 .claude/
 supabase/.temp/
+.taste-skill/chrome-*
+.taste-skill/shots

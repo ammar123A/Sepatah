@@ -6,9 +6,11 @@ import './style.css'
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: '/', component: () => import('./views/Home.vue') },
+    // "/" is the static landing (index.html), outside this app: leave the SPA for it
+    { path: '/', component: { render: () => null }, beforeEnter: () => { location.assign('/'); return false } },
     { path: '/admin', component: () => import('./views/Admin.vue') },
     { path: '/admin/e/:id', component: () => import('./views/AdminEvent.vue'), meta: { admin: true } },
+    { path: '/admin/e/:id/live', component: () => import('./views/Live.vue'), meta: { admin: true } },
     { path: '/g/:token', component: () => import('./views/Gallery.vue') },
     { path: '/:slug', component: () => import('./views/Invite.vue') },
     { path: '/:slug/tetamu', component: () => import('./views/Guestbook.vue') },

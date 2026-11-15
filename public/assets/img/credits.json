@@ -1,0 +1,93 @@
+{
+ "note": "Credits for the photographs in this folder: photos.mjs credits prints the footer block for the ones the pages use.",
+ "photos": [
+  {
+   "file": "photo-f31931258-1280.jpg",
+   "files": [
+    "photo-f31931258-500.jpg",
+    "photo-f31931258-960.jpg",
+    "photo-f31931258-1280.jpg"
+   ],
+   "id": "f31931258",
+   "alt": "Pelamin Malaysian Wedding in White",
+   "by": "shahnazshahizan",
+   "licence": "CC BY-SA 3.0",
+   "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "page": "https://commons.wikimedia.org/wiki/File:Pelamin_Malaysian_Wedding_in_White.jpg",
+   "source": "Wikimedia Commons"
+  },
+  {
+   "file": "photo-f200541151-960.jpg",
+   "files": [
+    "photo-f200541151-500.jpg",
+    "photo-f200541151-960.jpg"
+   ],
+   "id": "f200541151",
+   "alt": "Celebration - Malay wedding - Flickr - GeorgeTan^1",
+   "by": "Walk around the RED DOT from Singapore",
+   "licence": "CC0",
+   "licenceUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "page": "https://commons.wikimedia.org/wiki/File:Celebration_-_Malay_wedding_-_Flickr_-_GeorgeTan%5E1.jpg",
+   "source": "Wikimedia Commons"
+  },
+  {
+   "file": "photo-f73279180.jpg",
+   "files": [
+    "photo-f73279180-500.jpg",
+    "photo-f73279180-960.jpg",
+    "photo-f73279180.jpg"
+   ],
+   "id": "f73279180",
+   "alt": "Wedding Table (14639143086)",
+   "by": "outreachr.com",
+   "licence": "CC BY 2.0",
+   "licenceUrl": "https://creativecommons.org/licenses/by/2.0",
+   "page": "https://commons.wikimedia.org/wiki/File:Wedding_Table_(14639143086).jpg",
+   "source": "Wikimedia Commons"
+  },
+  {
+   "file": "photo-f18584874.jpg",
+   "files": [
+    "photo-f18584874-500.jpg",
+    "photo-f18584874-960.jpg",
+    "photo-f18584874.jpg"
+   ],
+   "id": "f18584874",
+   "alt": "Wedding rings and roses",
+   "by": "Dako99",
+   "licence": "CC BY-SA 3.0",
+   "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "page": "https://commons.wikimedia.org/wiki/File:Wedding_rings_and_roses.jpg",
+   "source": "Wikimedia Commons"
+  },
+  {
+   "file": "photo-f89574706-960.jpg",
+   "files": [
+    "photo-f89574706-500.jpg",
+    "photo-f89574706-960.jpg"
+   ],
+   "id": "f89574706",
+   "alt": "Beach Wedding Bouquet",
+   "by": "Simple Maui Wedding",
+   "licence": "CC BY 2.5",
+   "licenceUrl": "https://creativecommons.org/licenses/by/2.5",
+   "page": "https://commons.wikimedia.org/wiki/File:Beach_Wedding_Bouquet.jpg",
+   "source": "Wikimedia Commons"
+  },
+  {
+   "file": "photo-f35236470.jpg",
+   "files": [
+    "photo-f35236470-500.jpg",
+    "photo-f35236470-960.jpg",
+    "photo-f35236470.jpg"
+   ],
+   "id": "f35236470",
+   "alt": "Placing a wedding ring",
+   "by": "Petar Milošević",
+   "licence": "CC BY-SA 4.0",
+   "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "page": "https://commons.wikimedia.org/wiki/File:Placing_a_wedding_ring.jpg",
+   "source": "Wikimedia Commons"
+  }
+ ]
+}

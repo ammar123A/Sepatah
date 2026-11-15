@@ -1,10 +1,10 @@
 # Sepatah
 
-Malaysian wedding platform: invitation + RSVP, video wishes, QR guestbook, photo booth, couple galleries. Vue 3 + Vite + Supabase. Brief: [SEPATAH.md](SEPATAH.md).
+Malaysian wedding QR video guestbook: video wishes and a photo booth from a table QR, couple galleries, with an optional invitation + RSVP add-on. Vue 3 + Vite + Supabase. Brief: [SEPATAH.md](SEPATAH.md).
 
 ## Setup (once)
 1. Create a Supabase project (region **Singapore**).
-2. SQL editor: run each file in [supabase/migrations/](supabase/migrations/) in name order, then each file in [supabase/tests/](supabase/tests/). They must print `window ok`, `gallery ok` and `expiry ok`, and change nothing.
+2. SQL editor: run each file in [supabase/migrations/](supabase/migrations/) in name order, then each file in [supabase/tests/](supabase/tests/). Each must end with "Success. No rows returned" (a failed check shows a red error naming it) and changes nothing. The SQL editor hides their `… ok` notices; psql shows them.
 3. Edge Functions. Neither checks a JWT: `gallery` is authed by the gallery token, `expire` by `CRON_SECRET`.
    ```
    npx supabase secrets set --project-ref <ref> CRON_SECRET=<long random> RESEND_API_KEY=re_... MAIL_FROM="Sepatah <galeri@your-domain>" SITE_URL=https://your-site
@@ -34,8 +34,11 @@ npm run build      # dist/, deploy to Netlify (public/_redirects handles SPA rou
 On Netlify set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` as environment variables before building.
 
 ## Routes
+Two pages: `index.html` is the static landing at `/` (built with the taste-skill kit in `public/assets`, no Vue), `app.html` is the Vue app for every other path (`vite.config.js` rewrites to it in dev, `public/_redirects` on Netlify).
+
 | Path | Who | What |
 |---|---|---|
+| `/` | couples | the landing page (`index.html`): Malay, WhatsApp is the main action |
 | `/:slug` | guests | invitation, RSVP, pre-event video wish (until the QR window opens) |
 | `/:slug/tetamu` | guests (QR) | video wish + photo, during the event window |
 | `/g/:token` | couple (secret link) | three galleries (early wishes, guestbook, photos), download, share |

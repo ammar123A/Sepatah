@@ -46,7 +46,7 @@ Redesigned 2026-10-05, then twice on 2026-10-12. The last pass built the UI from
 
 | Token | Value |
 |---|---|
-| Paper / card | `#F2EDE3` / `#FBF8F2`; the page has a handmade-paper texture (watercolour mottle + grain). The envelope cover has flower bouquets on two corners, drawn in each wedding's colours (`bouquet()` in `src/themes.js`). |
+| Paper / card | `#F2EDE3` / `#FBF8F2`; the page is flat paper (2026-11-14 redesign), grain only on printed objects (arch, envelope card). The envelope cover has flower bouquets on two corners, drawn in each wedding's colours (`bouquet()` in `src/themes.js`). |
 | Ink / muted | `#1C221E` / `#5C635D` |
 | Deep green (envelope, hero arch, camera screens, selected states, focus) | `#1F3A2D`, `#2A4C3B`, `#142A1F` |
 | Accent, main action + wax seal | `#C4472D` (hover `#A93A23`) |
