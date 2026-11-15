@@ -146,7 +146,8 @@ onBeforeUnmount(() => clip.value && URL.revokeObjectURL(clip.value.url))
               <button class="btn sm" @click="openCam(true)">{{ t('retry') }}</button>
             </div>
             <div v-if="camOk && rec === 'recording'" class="cam-top"><i class="dot"></i>{{ t('rec') }}</div>
-            <div v-if="camOk" class="cam-bottom"><p class="prompt">{{ t('prompt') }}</p></div>
+            <!-- hidden while recording, so it never sits over the guests' faces -->
+            <div v-if="camOk && rec !== 'recording'" class="cam-bottom"><p class="prompt">{{ t('prompt') }}</p></div>
           </div>
           </div>
           <p v-if="tooLong" class="err" role="alert"><svg class="ic sm"><use href="#i-alert" /></svg>{{ t('tooLong') }}</p>

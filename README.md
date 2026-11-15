@@ -38,7 +38,7 @@ Two pages: `index.html` is the static landing at `/` (built with the taste-skill
 
 | Path | Who | What |
 |---|---|---|
-| `/` | couples | the landing page (`index.html`): Malay, WhatsApp is the main action |
+| `/` | couples | the landing page (`index.html`): English, WhatsApp is the main action |
 | `/:slug` | guests | invitation, RSVP, pre-event video wish (until the QR window opens) |
 | `/:slug/tetamu` | guests (QR) | video wish + photo, during the event window |
 | `/g/:token` | couple (secret link) | three galleries (early wishes, guestbook, photos), download, share |

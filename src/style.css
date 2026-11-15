@@ -150,9 +150,12 @@ a { color: var(--ink); }
 /* the recorder wears the wedding: their names, the camera inside the arch with a thin keyline, their bouquet on two corners */
 .rec-head { display: flex; flex-direction: column; align-items: center; gap: 2px; margin: -4px 0 0; text-align: center; animation: rise .5s var(--ease) both; }
 .rec-head span { font-size: var(--fs-sm); letter-spacing: .14em; text-transform: uppercase; color: var(--mut); }
-.rec-head b { font: 400 clamp(30px, 9vw, 40px)/1.1 var(--names); color: var(--deep); }
-.cam-frame { position: relative; flex: 1; display: flex; padding: 6px; border: 1.5px solid color-mix(in srgb, var(--deep) 30%, transparent); border-radius: 999px 999px 30px 30px; }
-.cam-frame .cam { min-height: 240px; border-radius: 999px 999px 24px 24px; }
+.rec-head b { font: 400 clamp(26px, 7.5vw, 34px)/1.1 var(--names); color: var(--deep); }
+.cam-frame { --fx: 15px; position: relative; display: flex; align-self: center; width: min(100% + var(--bleed, 0px), max(240px, (100dvh - 365px) * .75) + var(--fx)); padding: 6px; border: 1.5px solid color-mix(in srgb, var(--deep) 30%, transparent); border-radius: 999px 999px 30px 30px; }
+/* the camera stands portrait, 3:4 (room for three side by side): the column's full width, or narrower on a short screen so the
+   record button stays in view (365px: the bar, the names, the frame's band and the button); --fx is the frame's own width beside it,
+   --bleed lets the couple's frame run out over the column's 20px side padding to the screen's edges */
+.cam-frame .cam { flex: 1; aspect-ratio: 3 / 4; min-height: 0; border-radius: 999px 999px 24px 24px; }
 .cam-frame::before, .cam-frame::after { content: ''; position: absolute; z-index: 2; width: 38%; max-width: 160px; aspect-ratio: 1; background: var(--sprig) center / contain no-repeat; pointer-events: none; }
 .cam-frame::before { left: -12%; top: 6%; }
 .cam-frame::after { right: -12%; bottom: -9%; transform: rotate(180deg); }
@@ -163,8 +166,8 @@ a { color: var(--ink); }
 /* the couple's own frame artwork, drawn around the full-size camera with border-image: its corners keep their shape,
    its edges stretch to the camera's size and the plain middle (where the invite writes the names) is where the camera shows.
    ponytail: one 18% cut suits frames whose ornaments sit in the outer band, as the admin template asks; a per-wedding cut if a design needs it. */
-.cam-frame.art { --bw: clamp(34px, 10vw, 48px); padding: 0; border-style: solid; border-width: calc(var(--bw) / var(--ar)) var(--bw); border-radius: 0; border-image: var(--art) 18% round; background: var(--card); }
-.cam-frame.art .cam { min-height: 160px; border-radius: 8px; }
+.cam-frame.art { --bw: clamp(16px, 4.5vw, 24px); --fx: calc(2 * var(--bw)); --bleed: 40px; margin-block: -6px; padding: 0; border-style: solid; border-width: calc(var(--bw) / var(--ar)) var(--bw); border-radius: 0; border-image: var(--art) 18% round; background: var(--card); }
+.cam-frame.art .cam { border-radius: 8px; }
 .cam-frame.art::before, .cam-frame.art::after { content: none; }
 .feed { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
 .feed.rear { transform: none; } /* only the selfie camera is mirrored */
