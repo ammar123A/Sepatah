@@ -98,7 +98,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <Recorder v-if="screen === 'wish'" :slug="slug" source="pre" :couple="couple" :art="kadMode ? null : art" :art-size="artSize" @back="backToRsvp" @done="go('done')" />
+  <Recorder v-if="screen === 'wish'" :slug="slug" source="pre" :couple="couple" :art="kadMode ? null : art" :art-size="artSize" :theme="ev?.theme" @back="backToRsvp" @done="go('done')" />
 
   <div v-else class="shell">
     <div class="app">

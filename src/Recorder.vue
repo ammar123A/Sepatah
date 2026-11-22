@@ -3,8 +3,9 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { pickMime, sendMedia, camera, fmt } from './lib.js'
 import { t, LangToggle } from './i18n.js'
+import { resolve, bouquet, cover, recLayers, REC } from './themes.js'
 
-const props = defineProps({ slug: String, source: { type: String, default: 'event' }, couple: String, art: String, artSize: Array })
+const props = defineProps({ slug: String, source: { type: String, default: 'event' }, couple: String, art: String, artSize: Array, theme: Object })
 const emit = defineEmits(['back', 'done'])
 
 const MAX = 30
@@ -13,7 +14,7 @@ const showDebug = location.search.includes('debug') // format/bitrate panel for 
 const phase = ref('record') // record | review
 const { el: camEl, ok: camOk, err: camErr, open: openCam, stop: stopCam, flip, facing, stream } = camera()
 
-onMounted(() => openCam(true))
+onMounted(() => { openCam(true); prepare() })
 onBeforeUnmount(() => { stopRec(); stopCam() })
 watch(phase, (p) => (p === 'record' ? openCam(true) : stopCam()), { flush: 'post' })
 const back = () => (phase.value === 'review' ? (phase.value = 'record') : emit('back'))
@@ -26,6 +27,51 @@ const fileEl = ref(null)
 const clip = ref(null)
 let mr, chunks, t0, timer
 
+// The wedding's design goes into the video too: the camera is drawn into the frame on a canvas and that canvas is recorded.
+// Falls back to the plain camera if anything here fails (old browser, artwork blocked).
+let layers = null, raf = 0, canvasTrack = null
+const img = (src) => new Promise((ok, no) => Object.assign(new Image(), { crossOrigin: 'anonymous', onload() { ok(this) }, onerror: no, src }))
+async function prepare() {
+  try {
+    const r = resolve(props.theme)
+    const svg = bouquet(r).replace('<svg ', '<svg width="400" height="400" ') // canvas needs a pixel size
+    const [art, sprig] = await Promise.all([
+      props.art ? img(props.art).catch(() => null) : null,
+      img('data:image/svg+xml,' + encodeURIComponent(svg)).catch(() => null),
+      document.fonts.load(`56px "${r.font}"`),
+      document.fonts.load('21px Figtree'),
+    ])
+    layers = recLayers(r, { couple: props.couple, label: t('wishFor'), art, sprig })
+  } catch (e) {
+    console.warn('video frame off', e)
+  }
+}
+function recStream() {
+  const cam = stream()
+  if (!layers || !HTMLCanvasElement.prototype.captureStream) return cam
+  const c = Object.assign(document.createElement('canvas'), REC), g = c.getContext('2d'), v = camEl.value, [x, y, w, h] = layers.win
+  const draw = () => {
+    g.drawImage(layers.bg, 0, 0)
+    if (v.videoWidth) {
+      g.save()
+      layers.clip(g)
+      g.clip()
+      g.drawImage(v, ...cover(v.videoWidth, v.videoHeight, w, h), x, y, w, h)
+      g.restore()
+    }
+    if (layers.top) g.drawImage(layers.top, 0, 0)
+    raf = requestAnimationFrame(draw)
+  }
+  draw()
+  canvasTrack = c.captureStream(30).getVideoTracks()[0]
+  return new MediaStream([canvasTrack, ...cam.getAudioTracks()])
+}
+function endDraw() {
+  cancelAnimationFrame(raf)
+  canvasTrack?.stop()
+  canvasTrack = null
+}
+
 function setClip(blob, dur, via) {
   if (clip.value) URL.revokeObjectURL(clip.value.url)
   clip.value = { blob, url: URL.createObjectURL(blob), dur, mime: blob.type, size: blob.size, via }
@@ -37,8 +83,9 @@ function startRec() {
   tooLong.value = false
   try {
     chunks = []
-    mr = new MediaRecorder(stream(), { mimeType: pickMime() || undefined, videoBitsPerSecond: 2_500_000 })
+    mr = new MediaRecorder(recStream(), { mimeType: pickMime() || undefined, videoBitsPerSecond: 2_500_000 })
   } catch (e) {
+    endDraw()
     camOk.value = false
     camErr.value = e.name
     return
@@ -46,6 +93,7 @@ function startRec() {
   mr.ondataavailable = (e) => e.data.size && chunks.push(e.data)
   mr.onstop = () => {
     clearInterval(timer)
+    endDraw()
     rec.value = 'idle'
     setClip(new Blob(chunks, { type: mr.mimeType }), Math.min(MAX, (Date.now() - t0) / 1000), 'browser recorder')
   }

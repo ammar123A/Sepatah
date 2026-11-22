@@ -283,3 +283,88 @@ export function template(name) {
 
 // Reserves the couple's artwork box before it loads (no layout shift). size = [w, h] saved at upload; older events have none.
 export const kadBox = (size, dvh) => size && { aspectRatio: `${size[0]} / ${size[1]}`, width: `min(100%, ${(dvh * size[0]) / size[1]}dvh)` }
+
+// ---- video wish frame ----
+// The recorder's look, baked into the video: names on top, then the camera in the arch (keyline + two bouquets),
+// or inside the couple's own frame artwork, 9-sliced at 18% like the CSS border-image.
+export const REC = { width: 720, height: 1280 }
+// ar: the artwork's width / height, or null for the arch. Window is 3:4 like .cam.
+export function recLayout(ar, head) {
+  const w = 564, h = 752
+  const [px, py] = ar ? [44, Math.round(44 / Math.max(ar, 0.35))] : [9, 9]
+  const fw = w + 2 * px, fh = h + 2 * py, headH = head ? 150 : 0
+  const fx = (REC.width - fw) / 2, fy = Math.round((REC.height - fh - headH) / 2) + headH
+  return { frame: [fx, fy, fw, fh], win: [fx + px, fy + py, w, h], pad: [px, py], headY: fy - headH }
+}
+
+// border-image: <img> 18% round, onto the frame rect with border widths bx, by
+function nineSlice(g, img, [x, y, w, h], [bx, by]) {
+  const iw = img.width, ih = img.height, sx = iw * 0.18, sy = ih * 0.18, mw = iw - 2 * sx, mh = ih - 2 * sy
+  const dw = w - 2 * bx, dh = h - 2 * by
+  for (const [cx, cy, dx, dy] of [[0, 0, x, y], [iw - sx, 0, x + w - bx, y], [0, ih - sy, x, y + h - by], [iw - sx, ih - sy, x + w - bx, y + h - by]])
+    g.drawImage(img, cx, cy, sx, sy, dx, dy, bx, by)
+  // 'round': tiles keep their scale, then stretch so a whole number fits (+.5 px hides seams)
+  const nx = Math.max(1, Math.round(dw / ((mw * by) / sy))), tw = dw / nx
+  for (let i = 0; i < nx; i++) {
+    g.drawImage(img, sx, 0, mw, sy, x + bx + i * tw, y, tw + 0.5, by)
+    g.drawImage(img, sx, ih - sy, mw, sy, x + bx + i * tw, y + h - by, tw + 0.5, by)
+  }
+  const ny = Math.max(1, Math.round(dh / ((mh * bx) / sx))), th = dh / ny
+  for (let i = 0; i < ny; i++) {
+    g.drawImage(img, 0, sy, sx, mh, x, y + by + i * th, bx, th + 0.5)
+    g.drawImage(img, iw - sx, sy, sx, mh, x + w - bx, y + by + i * th, bx, th + 0.5)
+  }
+}
+
+// r: resolve(theme). art / sprig: loaded Images (either may be null). Returns the still layers and the camera window;
+// per frame: bg, then the camera clipped by clip(g), then top.
+export function recLayers(r, { couple, label, art, sprig }) {
+  const L = recLayout(art && art.width / art.height, !!couple)
+  const [fx, fy, fw, fh] = L.frame, [wx, wy, ww, wh] = L.win
+  const layer = () => Object.assign(document.createElement('canvas'), REC)
+  const bg = layer(), g = bg.getContext('2d')
+  g.fillStyle = r.paper
+  g.fillRect(0, 0, REC.width, REC.height)
+  if (couple) {
+    g.textAlign = 'center'
+    g.fillStyle = r.mut
+    g.font = '400 21px Figtree, sans-serif'
+    g.letterSpacing = '3px'
+    g.fillText(label.toUpperCase(), REC.width / 2, L.headY + 40)
+    g.letterSpacing = '0px'
+    g.fillStyle = r.deep
+    let size = 56
+    do g.font = `${size}px "${r.font}", Georgia, serif`
+    while (g.measureText(couple).width > REC.width - 80 && (size -= 4) > 28)
+    g.fillText(couple, REC.width / 2, L.headY + 110)
+  }
+  const clip = (c) => {
+    c.beginPath()
+    c.roundRect(wx, wy, ww, wh, art ? 12 : [ww / 2, ww / 2, 36, 36])
+  }
+  let top = null
+  if (art) {
+    g.fillStyle = r.custom.paper ? hexMix(r.paper, '#FFFFFF', 0.6) : r.card
+    g.fillRect(fx, fy, fw, fh)
+    nineSlice(g, art, L.frame, L.pad)
+  } else {
+    g.strokeStyle = hexMix(r.deep, r.paper, 0.7)
+    g.lineWidth = 2.5
+    g.beginPath()
+    g.roundRect(fx, fy, fw, fh, [fw / 2, fw / 2, 45, 45])
+    g.stroke()
+    if (sprig) {
+      // same spots as .cam-frame::before / ::after
+      top = layer()
+      const t = top.getContext('2d'), s = fw * 0.38
+      t.drawImage(sprig, fx - fw * 0.12, fy + fh * 0.06, s, s)
+      t.translate(fx + fw * 1.12 - s / 2, fy + fh * 1.09 - s / 2)
+      t.rotate(Math.PI)
+      t.drawImage(sprig, -s / 2, -s / 2, s, s)
+    }
+  }
+  g.fillStyle = r.deep // shows until the first camera frame
+  clip(g)
+  g.fill()
+  return { bg, top, win: L.win, clip }
+}

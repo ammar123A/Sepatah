@@ -1,6 +1,6 @@
 // Runnable check for src/themes.js: npm run check
 import assert from 'node:assert/strict'
-import { PRESETS, FONTS, LAYOUTS, resolve, themeVars, contrast, textPairs, cover, bouquet, hexMix, frameProblem, artWarnings, findHole, fitSingle, fitStrip, placeWin } from './themes.js'
+import { PRESETS, FONTS, LAYOUTS, resolve, themeVars, contrast, textPairs, cover, bouquet, hexMix, frameProblem, artWarnings, findHole, fitSingle, fitStrip, placeWin, recLayout, REC } from './themes.js'
 
 assert.equal(PRESETS.length, 10)
 assert.equal(new Set(PRESETS.map((p) => p.id)).size, 10, 'preset ids are unique')
@@ -79,3 +79,12 @@ assert.deepEqual(cover(1280, 720, 960, 960), [280, 0, 720, 720], 'landscape → 
 assert.deepEqual(cover(720, 1280, 960, 480), [0, 460, 720, 360], 'portrait → wide crops top and bottom')
 
 console.log('themes ok')
+
+// video wish frame: the camera window stays 3:4 and inside the 720 x 1280 video, below the names
+for (const ar of [null, 0.71, 1, 1.6, 0.2]) for (const head of [true, false]) {
+  const { frame: [fx, fy, fw, fh], win: [x, y, w, h], headY } = recLayout(ar, head)
+  assert.equal(w * 4, h * 3)
+  assert.ok(fx >= 0 && fy >= 0 && fx + fw <= REC.width && fy + fh <= REC.height, `frame fits for ar ${ar}`)
+  assert.ok(x > fx && y > fy && x + w < fx + fw && y + h < fy + fh)
+  assert.ok(headY >= 0)
+}

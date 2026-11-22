@@ -296,7 +296,7 @@ const host = location.host
 // ponytail: encodes location.origin, so open admin on the production domain before downloading for print
 const savedEv = ref(null) // { slug, bride, groom, event_date }
 const qrUrl = computed(() => savedEv.value && `${origin}/${savedEv.value.slug}/tetamu`)
-const qr = ref(null) // { svg, card }
+const qr = ref(null) // { svg, card, sheet }
 const qrBox = ref(null)
 const qrErr = ref('')
 watch(savedEv, async (ev) => {
@@ -306,15 +306,23 @@ watch(savedEv, async (ev) => {
   const url = qrUrl.value
   try {
     const [svg, card] = await Promise.all([QRCode.toString(url, { errorCorrectionLevel: 'M', margin: 4, type: 'svg' }), drawCard(ev, url)])
-    if (ev === savedEv.value) qr.value = { svg, card }
+    if (ev === savedEv.value) qr.value = { svg, card: card.toDataURL('image/png'), sheet: drawSheet(card) }
   } catch (e) {
     if (ev === savedEv.value) qrErr.value = `Could not build the table card: ${e.message || e}`
   }
 })
 
-// A6 (105 x 148 mm) at 300 dpi. Canvas rather than SVG so the brand fonts are baked into the print file.
+// Print the A4 sheet straight from the browser. @page pins the paper to A4 with no margin so the cards come out at true 4R.
+function printSheet() {
+  const w = window.open('', '_blank')
+  if (!w) return (qrErr.value = 'Allow pop-ups for this site to print the sheet.')
+  w.document.write(`<!doctype html><title>${savedEv.value.slug} table cards A4</title><style>@page{size:A4;margin:0}html,body{margin:0}img{display:block;width:210mm;height:297mm}</style><body onafterprint="close()"><img src="${qr.value.sheet}" onload="print()">`)
+  w.document.close()
+}
+
+// 4R photo (4 x 6 in, 102 x 152 mm) at 300 dpi, so it drops straight into a 4R frame. Canvas rather than SVG so the brand fonts are baked into the print file.
 async function drawCard(ev, url) {
-  const W = 1240, H = 1748, cx = W / 2
+  const W = 1200, H = 1800, cx = W / 2
   const [code, icon] = await Promise.all([
     QRCode.toCanvas(document.createElement('canvas'), url, { errorCorrectionLevel: 'M', margin: 4, width: 800 }),
     new Promise((ok, no) => Object.assign(new Image(), { onload() { ok(this) }, onerror: () => no(new Error('logo did not load')), src: '/favicon.svg' })),
@@ -333,38 +341,53 @@ async function drawCard(ev, url) {
     g.fillText(s, cx, y)
   }
   const date = new Date(ev.event_date + 'T00:00').toLocaleDateString('ms-MY', { day: 'numeric', month: 'long', year: 'numeric' })
-  text('Buku tetamu video', '#px "Young Serif"', 56, '#C4472D', 190)
+  text('Buku tetamu video', '#px "Young Serif"', 56, '#C4472D', 216)
   // full names (binti/bin) go on two lines rather than shrinking to nothing
   const names = `${ev.bride} & ${ev.groom}`
   g.font = '110px Gloock'
   const one = g.measureText(names).width <= W - 200
-  if (one) text(names, '#px Gloock', 110, '#1F3A2D', 320)
+  if (one) text(names, '#px Gloock', 110, '#1F3A2D', 346)
   else {
-    text(ev.bride, '#px Gloock', 88, '#1F3A2D', 282)
-    text(`& ${ev.groom}`, '#px Gloock', 88, '#1F3A2D', 372)
+    text(ev.bride, '#px Gloock', 88, '#1F3A2D', 308)
+    text(`& ${ev.groom}`, '#px Gloock', 88, '#1F3A2D', 398)
   }
-  text(date, '700 #px Figtree', 38, '#5C635D', one ? 392 : 436)
+  text(date, '700 #px Figtree', 38, '#5C635D', one ? 418 : 462)
   // rounded corners only cut into the quiet zone, never the code
   g.save()
   g.beginPath()
-  g.roundRect(cx - 400, 470, 800, 800, 36)
+  g.roundRect(cx - 400, 496, 800, 800, 36)
   g.clip()
-  g.drawImage(code, cx - 400, 470, 800, 800)
+  g.drawImage(code, cx - 400, 496, 800, 800)
   g.restore()
-  text('Imbas untuk rakam ucapan video', '700 #px Figtree', 50, '#1C221E', 1380)
-  text('Scan to record a video wish', '#px "Young Serif"', 44, '#5C635D', 1442)
-  text('Dibuka semasa majlis sahaja · Open during the event only', '400 #px Figtree', 30, '#5C635D', 1510)
+  text('Imbas untuk rakam ucapan video', '700 #px Figtree', 50, '#1C221E', 1406)
+  text('Scan to record a video wish', '#px "Young Serif"', 44, '#5C635D', 1468)
+  text('Dibuka semasa majlis sahaja · Open during the event only', '400 #px Figtree', 30, '#5C635D', 1536)
   // logo lockup: square icon + "sepatah." (the dot is the only accent on the card)
   g.font = '400 46px "Young Serif"'
   const wWord = g.measureText('sepatah').width, wDot = g.measureText('.').width
-  const x = cx - (60 + 16 + wWord + wDot) / 2, y = 1650
+  const x = cx - (60 + 16 + wWord + wDot) / 2, y = 1676
   g.drawImage(icon, x, y - 47, 60, 60)
   g.textAlign = 'left'
   g.fillStyle = '#1F3A2D'
   g.fillText('sepatah', x + 76, y)
   g.fillStyle = '#C4472D'
   g.fillText('.', x + 76 + wWord, y)
-  return c.toDataURL('image/png')
+  return c
+}
+
+// A4 at 300 dpi fits three 4R cards: two upright on top, one turned sideways below. Print at 100%, then cut.
+// ponytail: 2.4 mm side margins, a printer that can't reach that close clips a sliver of beige edge, which the frame covers
+function drawSheet(card) {
+  const s = Object.assign(document.createElement('canvas'), { width: 2480, height: 3508 })
+  const g = s.getContext('2d')
+  g.fillStyle = '#fff'
+  g.fillRect(0, 0, 2480, 3508)
+  g.drawImage(card, 28, 60)
+  g.drawImage(card, 1252, 60)
+  g.translate(340, 3120)
+  g.rotate(-Math.PI / 2)
+  g.drawImage(card, 0, 0)
+  return s.toDataURL('image/png')
 }
 </script>
 
@@ -600,6 +623,8 @@ async function drawCard(ev, url) {
                 <div class="row">
                   <div class="row" style="flex-wrap: wrap">
                     <a class="btn sm" :href="qr.card" :download="`${savedEv.slug}-kad-meja.png`">Table card (PNG)</a>
+                    <a class="btn sm" :href="qr.sheet" :download="`${savedEv.slug}-kad-meja-a4.png`">A4 sheet, 3 cards</a>
+                    <button type="button" class="btn sm" @click="printSheet">Print A4</button>
                     <a class="btn sm" :href="`data:image/svg+xml;charset=utf-8,${encodeURIComponent(qr.svg)}`" :download="`${savedEv.slug}-qr.svg`">QR only (SVG)</a>
                   </div>
                   <button type="button" class="back" aria-label="Close" @click="qrBox.close()"><svg class="ic sm"><use href="#i-x" /></svg></button>
@@ -607,10 +632,12 @@ async function drawCard(ev, url) {
               </template>
             </dialog>
             <div class="stack">
-              <p class="hint left">Table card, A6 at 300 dpi. Scans open {{ qrUrl }}.</p>
+              <p class="hint left">Table card, 4R (4 x 6 in) at 300 dpi. The A4 sheet holds 3, print at 100% and cut. Scans open {{ qrUrl }}.</p>
               <p v-if="qrErr" class="err" role="alert"><svg class="ic sm"><use href="#i-alert" /></svg>{{ qrErr }}</p>
               <div class="row">
                 <a class="btn sm" :class="{ off: !qr }" :href="qr?.card" :download="`${savedEv.slug}-kad-meja.png`">Table card (PNG)</a>
+                <a class="btn sm" :class="{ off: !qr }" :href="qr?.sheet" :download="`${savedEv.slug}-kad-meja-a4.png`">A4 sheet, 3 cards</a>
+                <button type="button" class="btn sm" :disabled="!qr" @click="printSheet">Print A4</button>
                 <a class="btn sm" :class="{ off: !qr }" :href="qr && `data:image/svg+xml;charset=utf-8,${encodeURIComponent(qr.svg)}`" :download="`${savedEv.slug}-qr.svg`">QR only (SVG)</a>
               </div>
             </div>

@@ -1,6 +1,6 @@
 <script setup>
 // QR guestbook: what guests open from the table card during the event.
-import { ref, computed, watch, onBeforeUnmount } from 'vue'
+import { ref, shallowRef, computed, watch, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import { useEvent, sendMedia, camera, assetUrl } from '../lib.js'
 import { t, initLang, dateStr, timeStr, LangToggle } from '../i18n.js'
@@ -35,7 +35,7 @@ const go = (s) => {
 }
 const doneKind = ref('video')
 
-// ---- photo: shoot (one, or three for a strip) → review → send ----
+// ---- photo: shoot one → review → send. A strip: each of the three is shot (or picked) and checked on its own, then the whole strip is reviewed ----
 const { el: camEl, ok: camOk, open: openCam, stop: stopCam, flip, facing } = camera()
 const shot = ref(null) // { blob, url, tall } waiting for the guest's OK
 watch([screen, shot], ([s, p]) => (s === 'photo' && !p ? openCam(false) : stopCam()), { flush: 'post' })
@@ -79,18 +79,37 @@ const sending = ref(false)
 const err = ref('')
 const running = ref(false)
 const count = ref(0) // countdown digit over the camera (strip only)
-const taken = ref(0) // strip shots so far
+const strip = computed(() => L.value.wins.length > 1)
+const picked = shallowRef([]) // strip photos the guest has OK'd (canvases / bitmaps: shallow, so Vue never proxies them)
+const pending = shallowRef(null) // { src, url }: the strip photo on screen waiting for OK / retake
+const busy = computed(() => running.value || !!pending.value || picked.value.length > 0) // layout and frame are locked mid-strip
 let run = 0 // bumped to cancel a strip in progress
 const wait = (ms) => new Promise((r) => setTimeout(r, ms))
 
 function dropShot() {
   run++
   running.value = false
-  count.value = taken.value = 0
+  count.value = 0
+  dropPending()
+  picked.value = []
   if (shot.value) URL.revokeObjectURL(shot.value.url)
   shot.value = null
   err.value = ''
 }
+function dropPending() {
+  if (pending.value) URL.revokeObjectURL(pending.value.url) // no-op for the camera's data: URL
+  pending.value = null
+}
+// photo OK'd: next one, or the finished strip once all windows are filled
+function accept() {
+  picked.value = [...picked.value, pending.value.src]
+  dropPending()
+  if (picked.value.length < L.value.wins.length) return
+  const { font } = resolve(ev.value.theme)
+  running.value = true
+  finish(++run, picked.value, loadFonts(font), font)
+}
+const back = () => (pending.value ? dropPending() : shot.value || picked.value.length ? dropShot() : go('landing'))
 
 // one video frame, mirrored like the preview (selfie camera only)
 function grab() {
@@ -108,36 +127,34 @@ function grab() {
 const loadFonts = (font) => Promise.all([document.fonts.load(`80px "${font}"`), document.fonts.load('600 43px Figtree'), document.fonts.load('400 30px "Young Serif"'), logo.decode().catch(() => {})])
 
 async function shoot() {
-  if (!camEl.value?.videoWidth || shot.value || running.value) return
-  const id = ++run, n = L.value.wins.length, shots = [], { font } = resolve(ev.value.theme)
+  if (!camEl.value?.videoWidth || shot.value || pending.value || running.value) return
+  const id = ++run, { font } = resolve(ev.value.theme)
   running.value = true
-  const fonts = loadFonts(font)
-  for (let i = 0; i < n; i++) {
-    if (n > 1) {
-      for (count.value = 3; count.value; count.value--) {
-        await wait(1000)
-        if (id !== run) return
-      }
-    }
-    if (!camEl.value?.videoWidth) return dropShot() // camera dropped mid-strip
-    shots.push(grab())
-    if (n > 1) taken.value = shots.length
+  if (!strip.value) return finish(id, [grab()], loadFonts(font), font)
+  for (count.value = 3; count.value; count.value--) {
+    await wait(1000)
+    if (id !== run) return
   }
-  await finish(id, shots, fonts, font)
+  if (!camEl.value?.videoWidth) return dropShot() // camera dropped mid-strip
+  const c = grab()
+  running.value = false
+  pending.value = { src: c, url: c.toDataURL('image/jpeg', 0.85) }
 }
 
-// gallery pick: a strip with fewer than 3 picks repeats them to fill its windows
+// gallery pick: the single photo, or the strip's current photo (checked like a camera shot)
 async function pick(e) {
-  const files = [...e.target.files]
+  const file = e.target.files[0]
   e.target.value = ''
-  if (!files.length || shot.value || running.value) return
-  const id = ++run, n = L.value.wins.length, { font } = resolve(ev.value.theme)
+  if (!file || shot.value || pending.value || running.value) return
+  const id = ++run, { font } = resolve(ev.value.theme)
   running.value = true
   err.value = ''
-  const fonts = loadFonts(font)
   try {
-    const shots = await Promise.all(Array.from({ length: n }, (_, i) => createImageBitmap(files[i % files.length])))
-    await finish(id, shots, fonts, font)
+    const bmp = await createImageBitmap(file)
+    if (id !== run) return
+    if (!strip.value) return await finish(id, [bmp], loadFonts(font), font)
+    running.value = false
+    pending.value = { src: bmp, url: URL.createObjectURL(file) }
   } catch {
     if (id !== run) return
     running.value = false
@@ -154,7 +171,6 @@ async function finish(id, shots, fonts, font) {
   const blob = await new Promise((res) => c.toBlob(res, 'image/jpeg', 0.9))
   if (id !== run) return
   running.value = false
-  taken.value = 0
   shot.value = { blob, url: URL.createObjectURL(blob), tall: L.value.h > L.value.w * 1.5 }
 }
 
@@ -174,15 +190,16 @@ async function send() {
 </script>
 
 <template>
-  <Recorder v-if="screen === 'video'" :slug="slug" source="event" :couple="couple" :art="kadMode ? null : art" :art-size="artSize" @back="go('landing')" @done="doneKind = 'video'; go('done')" />
+  <Recorder v-if="screen === 'video'" :slug="slug" source="event" :couple="couple" :art="kadMode ? null : art" :art-size="artSize" :theme="ev?.theme" @back="go('landing')" @done="doneKind = 'video'; go('done')" />
 
   <div v-else class="shell">
     <div class="app">
       <header class="bar">
-        <button v-if="screen === 'photo'" class="back" :aria-label="t('back')" :disabled="sending" @click="shot ? dropShot() : go('landing')">
+        <button v-if="screen === 'photo'" class="back" :aria-label="t('back')" :disabled="sending" @click="back">
           <svg class="ic"><use href="#i-back" /></svg>
         </button>
         <div v-else class="mark sm quiet">Sepatah</div>
+        <h1 v-if="screen === 'photo' && !shot && state === 'ok'" class="bar-title">{{ t('photoTitle') }}</h1>
         <LangToggle />
       </header>
 
@@ -200,7 +217,7 @@ async function send() {
         </div>
       </main>
 
-      <main v-else :key="screen" class="screen">
+      <main v-else :key="screen" class="screen" :class="{ tight: screen === 'photo' }">
         <template v-if="screen === 'landing' && phase !== 'open'">
           <div class="hero">
             <h1 class="names"><span>{{ ev.bride }}</span><span class="amp">&amp;</span><span>{{ ev.groom }}</span></h1>
@@ -217,7 +234,7 @@ async function send() {
         <template v-else-if="screen === 'landing'">
           <div v-if="art" class="hero">
             <template v-if="kadMode"><h1 class="sr">{{ couple }}</h1><img class="kad sm" :src="art" :style="kadBox(artSize, 40)" :alt="t('kadAlt', { couple })" /></template>
-            <div v-else class="framed sm">
+            <div v-else class="framed sm" :style="artSize && { '--ar': artSize[0] / artSize[1] }">
               <img :src="art" :width="artSize?.[0]" :height="artSize?.[1]" alt="" />
               <div><div class="eyebrow">{{ t('eyebrow') }}</div><h1 class="names"><span>{{ ev.bride }}</span><span class="amp">&amp;</span><span>{{ ev.groom }}</span></h1></div>
             </div>
@@ -262,22 +279,23 @@ async function send() {
           <button class="btn primary" :disabled="sending" @click="send">
             {{ sending ? t('sending') : err ? t('retry') : t('sendPhoto') }}
           </button>
-          <button class="linkbtn" :disabled="sending" @click="dropShot">{{ t('retakePhoto') }}</button>
+          <button class="linkbtn" :disabled="sending" @click="dropShot">{{ t(picked.length ? 'startOver' : 'retakePhoto') }}</button>
         </template>
 
         <template v-else-if="screen === 'photo'">
-          <h1 class="h1 sm">{{ t('photoTitle') }}</h1>
           <fieldset class="seg sm">
             <legend class="sr">{{ t('layout') }}</legend>
-            <label v-for="k in ['single', 'strip']" :key="k"><input v-model="layout" type="radio" name="layout" :value="k" :disabled="running" />{{ t(k) }}</label>
+            <label v-for="k in ['single', 'strip']" :key="k"><input v-model="layout" type="radio" name="layout" :value="k" :disabled="busy" />{{ t(k) }}</label>
           </fieldset>
-          <div class="polaroid" :style="{ aspectRatio: `${pv.w} / ${pv.h}`, background: L.fill || style.bg || 'var(--card)', border: '1px solid ' + (style.bd || 'transparent') }">
+          <div class="polaroid live" :class="{ strip }" :style="{ aspectRatio: `${pv.w} / ${pv.h}`, '--ar': pv.w / pv.h, background: L.fill || style.bg || 'var(--card)', border: '1px solid ' + (style.bd || 'transparent') }">
             <img v-if="layout === 'single' && style.overlay && L.under" class="ovl" :src="style.overlay.src" alt="" />
             <div class="shot" :style="pv.win">
-              <video ref="camEl" class="feed" :class="{ rear: facing !== 'user' }" autoplay muted playsinline v-show="camOk"></video>
-              <button v-if="camOk" class="flip" :aria-label="t('flip')" @click="flip"><svg class="ic"><use href="#i-flip" /></svg></button>
+              <video ref="camEl" class="feed" :class="{ rear: facing !== 'user' }" autoplay muted playsinline v-show="camOk && !pending"></video>
+              <!-- already mirrored by grab(), so never flipped again -->
+              <img v-if="pending" class="feed rear" :src="pending.url" :alt="t('stripStep', { n: picked.length + 1 })" />
+              <button v-if="camOk && !pending" class="flip" :aria-label="t('flip')" @click="flip"><svg class="ic"><use href="#i-flip" /></svg></button>
               <div v-if="count" :key="count" class="cdown" aria-live="assertive">{{ count }}</div>
-              <div v-if="!camOk" class="state">
+              <div v-if="!camOk && !pending" class="state">
                 <div class="badge"><svg class="ic"><use href="#i-alert" /></svg></div>
                 <h2>{{ t('errTitle') }}</h2>
                 <p>{{ t('errBody') }}</p>
@@ -289,19 +307,31 @@ async function send() {
               <div v-if="style.overlay ? L.own && L.cap : L.cap" class="cap" :style="{ top: pct(L.cap[0], L.h), color: style.fg }"><div class="cn">{{ couple }}</div><div class="cd" :style="{ color: style.sub }">{{ date }}</div></div>
             </template>
           </div>
-          <div v-if="layout === 'strip'" class="dots" aria-hidden="true"><i v-for="i in 3" :key="i" :class="{ on: i <= taken }"></i></div>
+          <div v-if="strip" class="steps">
+            <div class="dots" aria-hidden="true"><i v-for="i in 3" :key="i" :class="{ on: i <= picked.length }"></i></div>
+            <span>{{ t('stripStep', { n: picked.length + 1 }) }}</span>
+          </div>
           <div class="frames">
-            <button v-for="(f, i) in styles" :key="i" class="thumb" :class="{ on: frame === i, own: f.overlay }" :aria-label="f.overlay ? t('theirFrame') : `${t('frame')} ${i + 1}`" :aria-pressed="frame === i" :disabled="running"
+            <button v-for="(f, i) in styles" :key="i" class="thumb" :class="{ on: frame === i, own: f.overlay }" :aria-label="f.overlay ? t('theirFrame') : `${t('frame')} ${i + 1}`" :aria-pressed="frame === i" :disabled="busy"
               :style="f.overlay ? { backgroundImage: `url(${f.overlay.src})` } : { background: f.bg }" @click="frame = i">
               <i v-if="!f.overlay"></i>
             </button>
           </div>
           <div class="grow"></div>
-          <button class="shutter" :disabled="!camOk || running" :aria-label="t('shutter')" @click="shoot"><i></i></button>
-          <p class="hint">{{ t(layout === 'strip' ? 'stripHint' : 'photoHint') }}</p>
-          <p v-if="err === 'pick'" class="err" role="alert"><svg class="ic sm"><use href="#i-alert" /></svg>{{ t('pickFail') }}</p>
-          <button class="linkbtn" :disabled="running" @click="galEl.click()">{{ t(layout === 'strip' ? 'fromGalleryStrip' : 'fromGallery') }}</button>
-          <input ref="galEl" type="file" accept="image/*" :multiple="layout === 'strip'" hidden @change="pick" />
+          <template v-if="pending">
+            <button class="btn primary" @click="accept">{{ t(picked.length === 2 ? 'useLast' : 'usePhoto') }}</button>
+            <button class="linkbtn" @click="dropPending">{{ t('retakePhoto') }}</button>
+          </template>
+          <template v-else>
+            <!-- gallery beside the shutter, not under it, so both stay on a short screen -->
+            <div class="shoot">
+              <button class="linkbtn gal-btn" :disabled="running" @click="galEl.click()"><svg class="ic"><use href="#i-image" /></svg>{{ t(strip ? 'fromGalleryStrip' : 'fromGallery') }}</button>
+              <button class="shutter" :disabled="!camOk || running" :aria-label="t('shutter')" @click="shoot"><i></i></button>
+            </div>
+            <p class="hint">{{ t(strip ? 'stripHint' : 'photoHint') }}</p>
+            <p v-if="err === 'pick'" class="err" role="alert"><svg class="ic sm"><use href="#i-alert" /></svg>{{ t('pickFail') }}</p>
+          </template>
+          <input ref="galEl" type="file" accept="image/*" hidden @change="pick" />
         </template>
       </main>
     </div>
