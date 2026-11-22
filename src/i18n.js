@@ -33,6 +33,8 @@ const S = {
   errBody: ['Benarkan akses kamera dalam tetapan pelayar anda.', 'Allow camera access in your browser settings.'],
   retry: ['Cuba lagi', 'Try again'],
   tooLong: ['Video terlalu panjang. Maksimum 30 saat.', 'Video too long. Maximum 30 seconds.'],
+  tooBig: ['Video terlalu besar. Rakam semula dengan resolusi lebih rendah (1080p).', 'Video too large. Record again at a lower resolution (1080p).'],
+  shrinking: ['Menyediakan video anda', 'Preparing your video'],
   reviewTitle: ['Semak ucapan anda', 'Review your wish'],
   nameLabel: ['Nama anda', 'Your name'],
   optional: ['(tidak wajib)', '(optional)'],

@@ -127,22 +127,86 @@ async function tapRec() {
   startRec()
 }
 
-// Native camera fallback: some in-app browsers block getUserMedia
-function onFile(e) {
+// Native camera fallback: some in-app browsers block getUserMedia.
+// Phone camera files run 30-65 MB for 30 s at 1080p (more at 4K), over the 50 MB bucket limit, so anything bigger
+// than a 30 s recorder clip is played through a canvas and re-recorded at the recorder's bitrate (about 7 MB at most).
+// That takes as long as the clip.
+const SHRINK = 8e6
+const LIMIT = 52428800 // the media bucket's file_size_limit
+const shrinking = ref(null) // null, or progress 0..1
+const tooBig = ref(false)
+let alive = true
+onBeforeUnmount(() => (alive = false))
+
+const duration = (f) => new Promise((ok) => {
+  const url = URL.createObjectURL(f), v = Object.assign(document.createElement('video'), { preload: 'metadata' })
+  v.onloadedmetadata = v.onerror = () => (URL.revokeObjectURL(url), ok(v.duration || 0))
+  v.src = url
+})
+
+async function onFile(e) {
   const f = e.target.files[0]
   e.target.value = ''
-  if (!f) return
-  const url = URL.createObjectURL(f)
-  const v = document.createElement('video')
-  v.preload = 'metadata'
-  const done = () => {
-    URL.revokeObjectURL(url)
-    if (v.duration > MAX + 1) tooLong.value = true
-    else setClip(f, v.duration || 0, 'phone camera')
-  }
-  v.onloadedmetadata = done
-  v.onerror = done
-  v.src = url
+  if (!f || shrinking.value !== null) return
+  tooLong.value = tooBig.value = false
+  const dur = await duration(f)
+  if (dur > MAX + 1) return (tooLong.value = true)
+  if (f.size <= SHRINK) return setClip(f, dur, 'phone camera')
+  shrinking.value = 0
+  // ponytail: leaving mid-shrink lets it run out in the background (≤30 s); pass an abort if that ever matters
+  const small = await shrink(f, (p) => (shrinking.value = p)).catch((e) => (console.warn('shrink failed', e), null))
+  shrinking.value = null
+  if (!alive) return
+  if (small) setClip(small, dur, 'phone camera, re-recorded')
+  else if (f.size <= LIMIT) setClip(f, dur, 'phone camera')
+  else tooBig.value = true
+}
+
+function shrink(file, onProgress) {
+  return new Promise((ok, no) => {
+    const url = URL.createObjectURL(file)
+    const v = Object.assign(document.createElement('video'), { playsInline: true, src: url }) // unmuted, or the audio graph gets silence
+    const ac = new AudioContext()
+    let mr, raf, tracks = [], dog
+    const end = (fn, x) => {
+      clearTimeout(dog)
+      cancelAnimationFrame(raf)
+      v.pause()
+      tracks.forEach((tr) => tr.stop())
+      ac.close().catch(() => {})
+      URL.revokeObjectURL(url)
+      fn(x)
+    }
+    v.onerror = () => end(no, v.error)
+    v.onloadedmetadata = async () => {
+      try {
+        // short side down to 720 px, like the live camera; even sizes for the encoder
+        const k = Math.min(1, 720 / Math.min(v.videoWidth, v.videoHeight)), even = (n) => Math.round((n * k) / 2) * 2
+        const c = Object.assign(document.createElement('canvas'), { width: even(v.videoWidth), height: even(v.videoHeight) })
+        const g = c.getContext('2d'), out = ac.createMediaStreamDestination()
+        ac.createMediaElementSource(v).connect(out) // into the recording only, never the speaker
+        tracks = [c.captureStream(30).getVideoTracks()[0], ...out.stream.getAudioTracks()]
+        const chunks = []
+        mr = new MediaRecorder(new MediaStream(tracks), { mimeType: pickMime() || undefined, videoBitsPerSecond: 1_500_000 })
+        mr.ondataavailable = (e) => e.data.size && chunks.push(e.data)
+        mr.onstop = () => end(ok, new Blob(chunks, { type: mr.mimeType }))
+        v.onended = () => mr.state === 'recording' && mr.stop()
+        const draw = () => {
+          g.drawImage(v, 0, 0, c.width, c.height)
+          onProgress(Math.min(1, v.currentTime / v.duration))
+          raf = requestAnimationFrame(draw)
+        }
+        await ac.resume()
+        await v.play()
+        draw()
+        mr.start()
+        // a phone that pauses the hidden video (locked screen) never reaches 'ended'
+        dog = setTimeout(() => end(no, new Error('shrink stalled')), (v.duration + 15) * 1000)
+      } catch (e) {
+        end(no, e)
+      }
+    }
+  })
 }
 
 // ---- review + send ----
@@ -219,6 +283,11 @@ onBeforeUnmount(() => clip.value && URL.revokeObjectURL(clip.value.url))
           </div>
           </div>
           <p v-if="tooLong" class="err" role="alert"><svg class="ic sm"><use href="#i-alert" /></svg>{{ t('tooLong') }}</p>
+          <p v-if="tooBig" class="err" role="alert"><svg class="ic sm"><use href="#i-alert" /></svg>{{ t('tooBig') }}</p>
+          <template v-if="shrinking !== null">
+            <div class="progress"><i :style="{ width: shrinking * 100 + '%' }"></i></div>
+            <p class="hint" aria-live="polite">{{ t('shrinking') }} {{ Math.round(shrinking * 100) }}%. {{ t('keepOpen') }}</p>
+          </template>
           <div v-if="camOk" class="rec-wrap">
             <button class="recbtn" :aria-label="rec === 'recording' ? t('stop') : t('start')" @click="tapRec">
               <svg class="ring" viewBox="0 0 96 96">
