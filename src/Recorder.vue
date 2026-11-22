@@ -1,9 +1,10 @@
 <script setup>
 // Video wish: record (30 s hard stop) → review → send. Used by the QR guestbook and the pre-event wish.
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
-import { pickMime, sendMedia, camera, fmt } from './lib.js'
+import { pickMime, sendMedia, sendErr, newJob, camera, fmt, buzz, lastName, keepName } from './lib.js'
 import { t, LangToggle } from './i18n.js'
 import { resolve, bouquet, cover, recLayers, REC } from './themes.js'
+import CamError from './CamError.vue'
 
 const props = defineProps({ slug: String, source: { type: String, default: 'event' }, couple: String, art: String, artSize: Array, theme: Object })
 const emit = defineEmits(['back', 'done'])
@@ -15,9 +16,10 @@ const phase = ref('record') // record | review
 const { el: camEl, ok: camOk, err: camErr, open: openCam, stop: stopCam, flip, facing, stream } = camera()
 
 onMounted(() => { openCam(true); prepare() })
-onBeforeUnmount(() => { stopRec(); stopCam() })
+onBeforeUnmount(() => { countRun++; stopRec(); stopCam() })
 watch(phase, (p) => (p === 'record' ? openCam(true) : stopCam()), { flush: 'post' })
 const back = () => (phase.value === 'review' ? (phase.value = 'record') : emit('back'))
+watch(phase, () => { countRun++; count.value = 0 }) // leaving the camera cancels a countdown
 
 // ---- record ----
 const rec = ref('idle')
@@ -75,6 +77,7 @@ function endDraw() {
 function setClip(blob, dur, via) {
   if (clip.value) URL.revokeObjectURL(clip.value.url)
   clip.value = { blob, url: URL.createObjectURL(blob), dur, mime: blob.type, size: blob.size, via }
+  job = null
   err.value = ''
   uploadError.value = ''
   phase.value = 'review'
@@ -83,7 +86,7 @@ function startRec() {
   tooLong.value = false
   try {
     chunks = []
-    mr = new MediaRecorder(recStream(), { mimeType: pickMime() || undefined, videoBitsPerSecond: 2_500_000 })
+    mr = new MediaRecorder(recStream(), { mimeType: pickMime() || undefined, videoBitsPerSecond: 1_500_000 })
   } catch (e) {
     endDraw()
     camOk.value = false
@@ -98,6 +101,7 @@ function startRec() {
     setClip(new Blob(chunks, { type: mr.mimeType }), Math.min(MAX, (Date.now() - t0) / 1000), 'browser recorder')
   }
   mr.start()
+  buzz()
   t0 = Date.now()
   elapsed.value = 0
   rec.value = 'recording'
@@ -106,7 +110,22 @@ function startRec() {
     if (elapsed.value >= MAX) stopRec() // hard stop at 30 s
   }, 100)
 }
-const stopRec = () => mr?.state === 'recording' && mr.stop()
+const stopRec = () => mr?.state === 'recording' && (buzz(), mr.stop())
+
+// 3-2-1 before recording, so nobody is caught mid-breath; a tap during the count cancels it
+const count = ref(0)
+let countRun = 0
+const wait = (ms) => new Promise((r) => setTimeout(r, ms))
+async function tapRec() {
+  if (rec.value === 'recording') return stopRec()
+  if (count.value) return (countRun++, (count.value = 0))
+  const id = ++countRun
+  for (count.value = 3; count.value; count.value--) {
+    await wait(1000)
+    if (id !== countRun) return
+  }
+  startRec()
+}
 
 // Native camera fallback: some in-app browsers block getUserMedia
 function onFile(e) {
@@ -127,7 +146,8 @@ function onFile(e) {
 }
 
 // ---- review + send ----
-const name = ref('')
+const name = ref(lastName())
+let job = null // one per clip, so a retry reuses its upload slot
 const sending = ref(false)
 const pct = ref(0)
 const err = ref('')
@@ -138,10 +158,13 @@ async function send() {
   err.value = ''
   pct.value = 0
   try {
-    await sendMedia(clip.value.blob, { slug: props.slug, kind: 'video', source: props.source, name: name.value.trim(), dur: clip.value.dur }, (p) => (pct.value = p))
+    job ??= newJob({ slug: props.slug, kind: 'video', source: props.source, dur: clip.value.dur, blob: clip.value.blob })
+    job.name = name.value.trim()
+    keepName(job.name)
+    await sendMedia(job, (p) => (pct.value = p))
     emit('done')
   } catch (e) {
-    err.value = 'fail'
+    err.value = sendErr(e)
     uploadError.value = e.message
   } finally {
     sending.value = false
@@ -178,59 +201,57 @@ onBeforeUnmount(() => clip.value && URL.revokeObjectURL(clip.value.url))
         <LangToggle />
       </header>
 
-      <main :key="phase" class="screen">
+      <main :key="phase" class="screen" :class="{ tight: phase === 'review' }">
         <template v-if="phase === 'record'">
           <!-- the wedding's design around the camera: their names, then their own frame artwork around it, or else the arch and their bouquet -->
           <p v-if="couple" class="rec-head"><span>{{ t('wishFor') }}</span><b>{{ couple }}</b></p>
-          <div class="cam-frame" :class="{ art }" :style="art && { '--art': `url(${art})`, '--ar': artSize ? artSize[0] / artSize[1] : .71 }">
+          <CamError v-if="!camOk" :err="camErr" :fallback="t('useCamApp')" @retry="openCam(true)" @fallback="fileEl.click()" />
+          <!-- v-show, not v-if: the video element must stay so a retry can attach the camera to it -->
+          <div v-show="camOk" class="cam-frame" :class="{ art }" :style="art && { '--art': `url(${art})`, '--ar': artSize ? artSize[0] / artSize[1] : .71 }">
           <div class="cam">
             <video ref="camEl" class="feed" :class="{ rear: facing !== 'user' }" autoplay muted playsinline v-show="camOk"></video>
             <!-- hidden while recording: swapping the stream would cut the recording -->
             <button v-if="camOk && rec !== 'recording'" class="flip" :aria-label="t('flip')" @click="flip"><svg class="ic"><use href="#i-flip" /></svg></button>
-            <div v-if="!camOk" class="state">
-              <div class="badge"><svg class="ic"><use href="#i-alert" /></svg></div>
-              <h2>{{ t('errTitle') }}</h2>
-              <p>{{ t('errBody') }}</p>
-              <button class="btn sm" @click="openCam(true)">{{ t('retry') }}</button>
-            </div>
+            <div v-if="count" :key="count" class="cdown" aria-live="assertive">{{ count }}</div>
             <div v-if="camOk && rec === 'recording'" class="cam-top"><i class="dot"></i>{{ t('rec') }}</div>
             <!-- hidden while recording, so it never sits over the guests' faces -->
             <div v-if="camOk && rec !== 'recording'" class="cam-bottom"><p class="prompt">{{ t('prompt') }}</p></div>
           </div>
           </div>
           <p v-if="tooLong" class="err" role="alert"><svg class="ic sm"><use href="#i-alert" /></svg>{{ t('tooLong') }}</p>
-          <div class="rec-wrap">
-            <button class="recbtn" :disabled="!camOk" :aria-label="rec === 'recording' ? t('stop') : t('start')" @click="rec === 'recording' ? stopRec() : startRec()">
+          <div v-if="camOk" class="rec-wrap">
+            <button class="recbtn" :aria-label="rec === 'recording' ? t('stop') : t('start')" @click="tapRec">
               <svg class="ring" viewBox="0 0 96 96">
                 <circle cx="48" cy="48" r="44" class="track" />
                 <circle cx="48" cy="48" r="44" class="prog" :style="{ strokeDashoffset: C * (1 - elapsed / MAX) }" />
               </svg>
               <i class="core" :class="{ stop: rec === 'recording' }"></i>
             </button>
-            <p class="hint dim">{{ rec === 'recording' ? '' : t('tap') }}</p>
+            <p class="hint dim">{{ rec === 'recording' || count ? '' : t('tap') }}</p>
             <button class="linkbtn" @click="fileEl.click()">{{ t('phoneCam') }}</button>
-            <input ref="fileEl" type="file" accept="video/*" capture="user" hidden @change="onFile" />
           </div>
+          <input ref="fileEl" type="file" accept="video/*" capture="user" hidden @change="onFile" />
         </template>
 
         <template v-else-if="clip">
-          <h1 class="h1">{{ t('reviewTitle') }}</h1>
+          <h1 class="h1 sm">{{ t('reviewTitle') }}</h1>
           <video class="preview" :src="clip.url" controls playsinline></video>
           <label class="field">
             <span>{{ t('nameLabel') }} <em>{{ t('optional') }}</em></span>
             <input v-model="name" type="text" :placeholder="t('ph')" autocomplete="name" maxlength="60" />
           </label>
           <p class="hint left">{{ t('consent') }}</p>
-          <p v-if="err" class="err" role="alert"><svg class="ic sm"><use href="#i-alert" /></svg>{{ t('upFail') }}</p>
+          <p v-if="err" class="err" role="alert"><svg class="ic sm"><use href="#i-alert" /></svg>{{ t(err) }}</p>
           <div v-if="sending" class="progress"><i :style="{ width: pct * 100 + '%' }"></i></div>
+          <p v-if="sending" class="hint">{{ t('keepOpen') }}</p>
           <details v-if="showDebug" class="debug">
             <summary>{{ t('debug') }}</summary>
             <pre>{{ info }}</pre>
             <button class="btn sm" @click="copyInfo">{{ copied ? t('copied') : t('copy') }}</button>
           </details>
           <div class="grow"></div>
-          <button class="btn primary" :disabled="sending" @click="send">
-            {{ sending ? `${t('sending')} ${Math.round(pct * 100)}%` : err ? t('retry') : t('send') }}
+          <button class="btn primary" :disabled="sending || err === 'upClosed'" @click="send">
+            {{ sending ? `${t('sending')} ${Math.round(pct * 100)}%` : err && err !== 'upClosed' ? t('retry') : t('send') }}
           </button>
           <button class="linkbtn" :disabled="sending" @click="phase = 'record'">{{ t('retake') }}</button>
         </template>

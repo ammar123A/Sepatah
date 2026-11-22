@@ -2,10 +2,11 @@
 // QR guestbook: what guests open from the table card during the event.
 import { ref, shallowRef, computed, watch, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
-import { useEvent, sendMedia, camera, assetUrl } from '../lib.js'
+import { useEvent, sendMedia, sendErr, newJob, unsent, camera, assetUrl, inApp, isAndroid, chromeUrl, buzz, lastName, keepName } from '../lib.js'
 import { t, initLang, dateStr, timeStr, LangToggle } from '../i18n.js'
 import { LAYOUTS, resolve, frameStyles, compose, kadBox } from '../themes.js'
 import Recorder from '../Recorder.vue'
+import CamError from '../CamError.vue'
 
 const slug = useRoute().params.slug
 const { ev, state, load } = useEvent(slug, (e) => {
@@ -35,8 +36,34 @@ const go = (s) => {
 }
 const doneKind = ref('video')
 
+// wishes / photos from this phone that never reached the server (signal dropped, phone locked): offered on the landing
+const unsentJobs = shallowRef([]) // shallow: the jobs go back into IndexedDB, which can't store Vue proxies
+const resending = ref(false)
+const refreshUnsent = () => unsent.list(slug).then((js) => (unsentJobs.value = js))
+refreshUnsent()
+watch(screen, (s) => s === 'landing' && refreshUnsent())
+async function resend() {
+  resending.value = true
+  err.value = ''
+  try {
+    let kind
+    for (const j of unsentJobs.value) {
+      await sendMedia(j)
+      kind = j.kind
+    }
+    doneKind.value = kind
+    go('done')
+  } catch (e) {
+    err.value = sendErr(e)
+  } finally {
+    resending.value = false
+    refreshUnsent()
+  }
+}
+const discard = () => Promise.all(unsentJobs.value.map((j) => unsent.del(j.id))).then(refreshUnsent)
+
 // ---- photo: shoot one → review → send. A strip: each of the three is shot (or picked) and checked on its own, then the whole strip is reviewed ----
-const { el: camEl, ok: camOk, open: openCam, stop: stopCam, flip, facing } = camera()
+const { el: camEl, ok: camOk, err: camErr, open: openCam, stop: stopCam, flip, facing } = camera()
 const shot = ref(null) // { blob, url, tall } waiting for the guest's OK
 watch([screen, shot], ([s, p]) => (s === 'photo' && !p ? openCam(false) : stopCam()), { flush: 'post' })
 onBeforeUnmount(() => { stopCam(); dropShot() })
@@ -77,6 +104,8 @@ const pv = computed(() => {
 
 const sending = ref(false)
 const err = ref('')
+const name = ref(lastName())
+let job = null // one per photo, so a retry reuses its upload slot
 const running = ref(false)
 const count = ref(0) // countdown digit over the camera (strip only)
 const strip = computed(() => L.value.wins.length > 1)
@@ -94,6 +123,7 @@ function dropShot() {
   picked.value = []
   if (shot.value) URL.revokeObjectURL(shot.value.url)
   shot.value = null
+  job = null
   err.value = ''
 }
 function dropPending() {
@@ -116,6 +146,7 @@ function grab() {
   const v = camEl.value
   const c = Object.assign(document.createElement('canvas'), { width: v.videoWidth, height: v.videoHeight })
   const g = c.getContext('2d')
+  buzz()
   if (facing.value === 'user') {
     g.translate(c.width, 0)
     g.scale(-1, 1)
@@ -178,11 +209,14 @@ async function send() {
   sending.value = true
   err.value = ''
   try {
-    await sendMedia(shot.value.blob, { slug, kind: 'photo' }, () => {})
+    job ??= newJob({ slug, kind: 'photo', blob: shot.value.blob })
+    job.name = name.value.trim()
+    keepName(job.name)
+    await sendMedia(job)
     doneKind.value = 'photo'
     go('done')
-  } catch {
-    err.value = 'fail'
+  } catch (e) {
+    err.value = sendErr(e)
   } finally {
     sending.value = false
   }
@@ -247,6 +281,16 @@ async function send() {
             <p class="lede">{{ t('lede') }}</p>
           </div>
           <div class="stack">
+            <div v-if="unsentJobs.length" class="notice" role="status">
+              <p>{{ t('unsent') }}</p>
+              <button class="btn primary sm" :disabled="resending" @click="resend">{{ resending ? t('sending') : t('unsentSend') }}</button>
+              <button class="linkbtn" :disabled="resending" @click="discard">{{ t('unsentDrop') }}</button>
+            </div>
+            <p v-if="err" class="err" role="alert"><svg class="ic sm"><use href="#i-alert" /></svg>{{ t(err) }}</p>
+            <div v-if="inApp" class="notice">
+              <p>{{ t('camInApp') }}</p>
+              <a v-if="isAndroid" class="btn sm" :href="chromeUrl()">{{ t('openChrome') }}</a>
+            </div>
             <button class="btn primary two" @click="go('video')">
               <svg class="ic"><use href="#i-video" /></svg>
               <span><b>{{ t('btnVideo') }}</b><small>{{ t('btnVideoSub') }}</small></span>
@@ -274,10 +318,15 @@ async function send() {
         <template v-else-if="screen === 'photo' && shot">
           <h1 class="h1 sm">{{ t('photoReview') }}</h1>
           <img class="polaroid" :class="{ tall: shot.tall }" :src="shot.url" :alt="t('photoReview')" />
+          <label class="field">
+            <span>{{ t('nameLabel') }} <em>{{ t('optional') }}</em></span>
+            <input v-model="name" type="text" :placeholder="t('ph')" autocomplete="name" maxlength="60" />
+          </label>
           <div class="grow"></div>
-          <p v-if="err" class="err" role="alert"><svg class="ic sm"><use href="#i-alert" /></svg>{{ t('upFail') }}</p>
-          <button class="btn primary" :disabled="sending" @click="send">
-            {{ sending ? t('sending') : err ? t('retry') : t('sendPhoto') }}
+          <p v-if="err" class="err" role="alert"><svg class="ic sm"><use href="#i-alert" /></svg>{{ t(err) }}</p>
+          <p v-if="sending" class="hint">{{ t('keepOpen') }}</p>
+          <button class="btn primary" :disabled="sending || err === 'upClosed'" @click="send">
+            {{ sending ? t('sending') : err && err !== 'upClosed' ? t('retry') : t('sendPhoto') }}
           </button>
           <button class="linkbtn" :disabled="sending" @click="dropShot">{{ t(picked.length ? 'startOver' : 'retakePhoto') }}</button>
         </template>
@@ -287,7 +336,7 @@ async function send() {
             <legend class="sr">{{ t('layout') }}</legend>
             <label v-for="k in ['single', 'strip']" :key="k"><input v-model="layout" type="radio" name="layout" :value="k" :disabled="busy" />{{ t(k) }}</label>
           </fieldset>
-          <div class="polaroid live" :class="{ strip }" :style="{ aspectRatio: `${pv.w} / ${pv.h}`, '--ar': pv.w / pv.h, background: L.fill || style.bg || 'var(--card)', border: '1px solid ' + (style.bd || 'transparent') }">
+          <div v-show="camOk || pending" class="polaroid live" :class="{ strip }" :style="{ aspectRatio: `${pv.w} / ${pv.h}`, '--ar': pv.w / pv.h, background: L.fill || style.bg || 'var(--card)', border: '1px solid ' + (style.bd || 'transparent') }">
             <img v-if="layout === 'single' && style.overlay && L.under" class="ovl" :src="style.overlay.src" alt="" />
             <div class="shot" :style="pv.win">
               <video ref="camEl" class="feed" :class="{ rear: facing !== 'user' }" autoplay muted playsinline v-show="camOk && !pending"></video>
@@ -295,18 +344,13 @@ async function send() {
               <img v-if="pending" class="feed rear" :src="pending.url" :alt="t('stripStep', { n: picked.length + 1 })" />
               <button v-if="camOk && !pending" class="flip" :aria-label="t('flip')" @click="flip"><svg class="ic"><use href="#i-flip" /></svg></button>
               <div v-if="count" :key="count" class="cdown" aria-live="assertive">{{ count }}</div>
-              <div v-if="!camOk && !pending" class="state">
-                <div class="badge"><svg class="ic"><use href="#i-alert" /></svg></div>
-                <h2>{{ t('errTitle') }}</h2>
-                <p>{{ t('errBody') }}</p>
-                <button class="btn sm" @click="openCam(false)">{{ t('retry') }}</button>
-              </div>
             </div>
             <template v-if="layout === 'single'">
               <img v-if="style.overlay && !L.under" class="ovl" :src="style.overlay.src" alt="" />
               <div v-if="style.overlay ? L.own && L.cap : L.cap" class="cap" :style="{ top: pct(L.cap[0], L.h), color: style.fg }"><div class="cn">{{ couple }}</div><div class="cd" :style="{ color: style.sub }">{{ date }}</div></div>
             </template>
           </div>
+          <CamError v-if="!camOk && !pending" :err="camErr" :fallback="t(strip ? 'fromGalleryStrip' : 'fromGallery')" @retry="openCam(false)" @fallback="galEl.click()" />
           <div v-if="strip" class="steps">
             <div class="dots" aria-hidden="true"><i v-for="i in 3" :key="i" :class="{ on: i <= picked.length }"></i></div>
             <span>{{ t('stripStep', { n: picked.length + 1 }) }}</span>
@@ -324,7 +368,7 @@ async function send() {
           </template>
           <template v-else>
             <!-- gallery beside the shutter, not under it, so both stay on a short screen -->
-            <div class="shoot">
+            <div v-if="camOk" class="shoot">
               <button class="linkbtn gal-btn" :disabled="running" @click="galEl.click()"><svg class="ic"><use href="#i-image" /></svg>{{ t(strip ? 'fromGalleryStrip' : 'fromGallery') }}</button>
               <button class="shutter" :disabled="!camOk || running" :aria-label="t('shutter')" @click="shoot"><i></i></button>
             </div>
