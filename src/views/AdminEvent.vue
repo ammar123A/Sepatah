@@ -5,7 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import QRCode from 'qrcode'
 import { sb, assetUrl, fmt } from '../lib.js'
 import MapPicker from '../MapPicker.vue'
-import { PRESETS, FONTS, LAYOUTS, resolve, themeVars, loadFont, contrast, textPairs, template, frameProblem, artWarnings, compose, findHole, fitSingle, fitStrip, placeWin } from '../themes.js'
+import { PRESETS, FONTS, LAYOUTS, resolve, themeVars, loadFont, contrast, textPairs, template, frameProblem, artWarnings, compose, findHole, findHoles, photoMask, fitHoles, fitBox, fitSingle, fitStrip, placeWin } from '../themes.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -193,7 +193,7 @@ const pickPreset = (id) => Object.assign(f.value.theme, { preset: id, deep: '', 
 const ASSETS = [
   ['art', 'Kad artwork', 'PNG or JPG. Replaces the arch on the invitation and guestbook', null],
   ['frame', 'Single photo frame', 'any PNG or JPG. A see-through hole becomes the photo window', 'single'],
-  ['strip', 'Photo strip frame', 'any PNG or JPG, used as header and footer; or a PNG from the template', 'strip'],
+  ['strip', 'Photo strip frame', 'any PNG or JPG. Three empty photo boxes are used as is; one box is stretched to fit three photos', 'strip'],
 ]
 const designErr = ref('')
 const designWarn = ref('')
@@ -222,9 +222,16 @@ async function onAsset(e, key, layout) {
       s.drawImage(bmp, 0, 0, sw, sh)
       fit = fitSingle(sw, sh, findHole(s.getImageData(0, 0, sw, sh).data.filter((_, i) => i % 4 === 3), sw, sh))
     } else if (!fromTemplate) {
-      // header + footer strip; the gap between them takes the design's middle colour when it's solid
+      // the design's own photo boxes (see-through, or blank in its centre colour): three → used as is;
+      // one wide box → stretched to hold three; otherwise its top and bottom become header and footer
+      const sw = Math.min(540, bmp.width), sh = Math.round((bmp.height * sw) / bmp.width)
+      const s = Object.assign(document.createElement('canvas'), { width: sw, height: sh }).getContext('2d', { willReadFrequently: true })
+      s.drawImage(bmp, 0, 0, sw, sh)
+      const { mask, solid } = photoMask(s.getImageData(0, 0, sw, sh).data, sw, sh), holes = findHoles(mask, sw, sh, 0.03)
       const [r, gr, b, a] = g.getImageData(bmp.width >> 1, bmp.height >> 1, 1, 1).data
-      fit = fitStrip(bmp.width, bmp.height, a === 255 ? '#' + [r, gr, b].map((v) => v.toString(16).padStart(2, '0')).join('') : th.value.card)
+      fit = holes.length === 3 ? fitHoles(sw, sh, holes, solid)
+        : holes[0]?.[2] >= sw * 0.5 ? fitBox(sw, sh, holes[0])
+        : fitStrip(bmp.width, bmp.height, a === 255 ? '#' + [r, gr, b].map((v) => v.toString(16).padStart(2, '0')).join('') : th.value.card)
     }
     if (k < 1) designWarn.value = `It's ${bmp.width} px wide, smaller than the ${L.w} px photo, so the frame may look soft. Use a bigger file if you have one.`
   } else {

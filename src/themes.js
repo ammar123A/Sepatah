@@ -122,8 +122,9 @@ export function cover(sw, sh, w, h) {
 
 // shots: canvases/images, already mirrored for the selfie camera. style: a frameStyles entry, or { overlay: Image, ...colours }.
 // L is a LAYOUTS entry, or a couple's own fit (fitSingle/fitStrip): `under` puts the design behind the photos,
-// `parts` copies slices of the design ([sy, sh, dy] in layout px, design scaled to width L.w), `fill` colours the gaps.
-// logo: the Sepatah icon (an Image), drawn as a small lockup at the foot of the caption, or of the design if it owns the caption.
+// `parts` copies slices of the design ([sy, sh, dy, flip?] in layout px, design scaled to width L.w; flip mirrors it top to bottom),
+// `fill` colours the gaps. logo: the Sepatah icon (an Image), drawn as a small lockup at L.logoY, or at the foot of the caption,
+// or of the design if it owns the caption.
 export function compose(L, shots, style, { couple, date, font, logo }) {
   const c = Object.assign(document.createElement('canvas'), { width: L.w, height: L.h })
   const g = c.getContext('2d')
@@ -132,7 +133,15 @@ export function compose(L, shots, style, { couple, date, font, logo }) {
   g.fillRect(0, 0, L.w, L.h)
   const drawArt = () => {
     const k = art.width / L.w
-    for (const [sy, sh, dy] of L.parts || [[0, L.h, 0]]) g.drawImage(art, 0, sy * k, art.width, sh * k, 0, dy, L.w, sh)
+    for (const [sy, sh, dy, flip] of L.parts || [[0, L.h, 0]]) {
+      g.save()
+      if (flip) {
+        g.translate(0, 2 * dy + sh)
+        g.scale(1, -1)
+      }
+      g.drawImage(art, 0, sy * k, art.width, sh * k, 0, dy, L.w, sh)
+      g.restore()
+    }
   }
   if (art && L.under) drawArt()
   L.wins.forEach(([x, y, w, h], i) => g.drawImage(shots[i], ...cover(shots[i].width, shots[i].height, w, h), x, y, w, h))
@@ -159,7 +168,7 @@ export function compose(L, shots, style, { couple, date, font, logo }) {
   }
   if (logo) {
     // icon + "sepatah." on a pill in the frame colour, so it reads over a couple's artwork too
-    const s = 36, y = (ours ? L.cap[0] + L.cap[1] : L.h) - 40
+    const s = 36, y = L.logoY ?? (ours ? L.cap[0] + L.cap[1] : L.h) - 40
     g.font = '400 30px "Young Serif", Georgia, serif'
     g.textAlign = 'left'
     g.textBaseline = 'middle'
@@ -176,9 +185,9 @@ export function compose(L, shots, style, { couple, date, font, logo }) {
 }
 
 // ---- a couple's own frame in any size or shape ----
-// Biggest see-through area that doesn't touch the image edge (a hole in the frame), as [x, y, w, h], or null.
-// alpha: one 0..255 value per pixel, w x h. Holes smaller than 5% of the image don't count.
-export function findHole(alpha, w, h) {
+// See-through areas that don't touch the image edge (holes in the frame), as [x, y, w, h], biggest first.
+// alpha: one 0..255 value per pixel, w x h. Holes smaller than `min` of the image don't count.
+export function findHoles(alpha, w, h, min = 0.05) {
   const mark = new Int32Array(w * h) // 0 = not visited, -1 = outside, >0 = a hole
   const fill = (start, id) => {
     const stack = [start]
@@ -202,13 +211,52 @@ export function findHole(alpha, w, h) {
   }
   for (let x = 0; x < w; x++) for (const i of [x, (h - 1) * w + x]) if (!mark[i] && alpha[i] < 128) fill(i, -1)
   for (let y = 0; y < h; y++) for (const i of [y * w, y * w + w - 1]) if (!mark[i] && alpha[i] < 128) fill(i, -1)
-  let best = null, id = 0
+  const out = []
+  let id = 0
   for (let i = 0; i < w * h; i++) {
     if (mark[i] || alpha[i] >= 128) continue
     const r = fill(i, ++id)
-    if (!best || r.n > best.n) best = r
+    if (r.n >= w * h * min) out.push(r)
   }
-  return best && best.n >= w * h * 0.05 ? best.box : null
+  return out.sort((a, b) => b.n - a.n).map((r) => r.box)
+}
+export const findHole = (alpha, w, h) => findHoles(alpha, w, h)[0] || null
+
+// Where photos can go in a design: see-through pixels, plus pixels the colour of its centre when that's solid
+// (the empty boxes a designer leaves for photos). rgba: 4 bytes per pixel → { mask: alpha-like for findHoles, solid }.
+export function photoMask(rgba, w, h) {
+  const c = ((h >> 1) * w + (w >> 1)) * 4, solid = rgba[c + 3] === 255, mask = new Uint8Array(w * h)
+  for (let i = 0, p = 0; i < w * h; i++, p += 4) {
+    const near = solid && rgba[p + 3] === 255 && Math.abs(rgba[p] - rgba[c]) + Math.abs(rgba[p + 1] - rgba[c + 1]) + Math.abs(rgba[p + 2] - rgba[c + 2]) < 48
+    mask[i] = rgba[p + 3] < 128 || near ? 0 : 255
+  }
+  return { mask, solid }
+}
+
+// A design with its own photo areas, used as is: photos fill them top to bottom. Solid areas (under) take the photo on top
+// of the design; see-through ones get a little bleed under the design's edge. holes: [x, y, w, h] in the design's bw x bh pixels.
+export function fitHoles(bw, bh, holes, under = false) {
+  const w = 1080, k = w / bw, h = Math.round(bh * k), b = under ? 0 : 4
+  const wins = holes.map((hole) => {
+    const [x, y, hw, hh] = hole.map((v) => Math.round(v * k)), x0 = Math.max(0, x - b), y0 = Math.max(0, y - b)
+    return [x0, y0, Math.min(w, x + hw + b) - x0, Math.min(h, y + hh + b) - y0]
+  })
+  return { own: true, w, h, under, cap: null, wins: wins.sort((p, q) => p[1] - q[1] || p[0] - q[0]) }
+}
+
+// Strip from a design with one empty box (a kad with a blank middle): the box grows to hold three photos and the logo.
+// The design above and below the box stays as is; the rows across the box repeat, every other copy mirrored so the
+// sides join without a seam. The design's own names stay in its footer, so no caption of ours.
+export function fitBox(bw, bh, box) {
+  const w = 1080, k = w / bw, d = Math.round(bh * k), [bx, by, bW, bH] = box.map((v) => Math.round(v * k))
+  const pad = Math.max(24, Math.round(bW * 0.05)), ww = bW - 2 * pad, wh = Math.round((ww * 933) / 960), foot = 110
+  const T = Math.max(bH, pad + 3 * wh + 2 * pad + foot), parts = []
+  for (let y = 0; y < T; y += bH) parts.push([by, bH, by + y, parts.length % 2 === 1])
+  parts.push([0, by, 0], [by + bH, d - by - bH, by + T]) // header and footer last: they cover the last copy's overhang
+  return {
+    own: true, w, h: d - bH + T, under: true, cap: null, parts, logoY: by + T - foot / 2,
+    wins: [0, 1, 2].map((i) => [bx + pad, by + pad + i * (wh + pad), ww, wh]),
+  }
 }
 
 // Window moved or resized in admin; the caption (if on) fills the space below it
@@ -216,13 +264,8 @@ export const placeWin = (L, win, capOn = !!L.cap) => ({ ...L, wins: [win], cap: 
 
 // Single photo from a design of any size (bw x bh). hole: findHole's box in the same pixels, or null.
 export function fitSingle(bw, bh, hole) {
-  const w = 1080, k = w / bw, h = Math.round(bh * k)
-  if (hole) {
-    // photo fills the hole with a little bleed under the design's edge; the design goes on top
-    const [x, y, hw, hh] = hole.map((v) => Math.round(v * k)), b = 4
-    const x0 = Math.max(0, x - b), y0 = Math.max(0, y - b)
-    return { own: true, w, h, under: false, cap: null, wins: [[x0, y0, Math.min(w, x + hw + b) - x0, Math.min(h, y + hh + b) - y0]] }
-  }
+  if (hole) return fitHoles(bw, bh, [hole]) // photo fills the hole; the design goes on top
+  const w = 1080, h = Math.round(bh * (w / bw))
   // no hole: the design is the background, the photo sits on top where Mato drags it, names underneath
   const ww = Math.round(w * 0.76), wh = Math.round(Math.min(h * 0.55, ww * 1.1))
   return placeWin({ own: true, w, h, under: true }, [Math.round((w - ww) / 2), Math.round(h * 0.12), ww, wh], true)

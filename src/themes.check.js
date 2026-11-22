@@ -1,6 +1,6 @@
 // Runnable check for src/themes.js: npm run check
 import assert from 'node:assert/strict'
-import { PRESETS, FONTS, LAYOUTS, resolve, themeVars, contrast, textPairs, cover, bouquet, hexMix, frameProblem, artWarnings, findHole, fitSingle, fitStrip, placeWin, recLayout, REC } from './themes.js'
+import { PRESETS, FONTS, LAYOUTS, resolve, themeVars, contrast, textPairs, cover, bouquet, hexMix, frameProblem, artWarnings, findHole, findHoles, photoMask, fitHoles, fitBox, fitSingle, fitStrip, placeWin, recLayout, REC } from './themes.js'
 
 assert.equal(PRESETS.length, 10)
 assert.equal(new Set(PRESETS.map((p) => p.id)).size, 10, 'preset ids are unique')
@@ -68,6 +68,28 @@ for (const [bw, bh, parts] of [[1080, 1440, 2], [1080, 300, 1]]) {
   const last = boxes.at(-1)
   assert.equal(last[1] + last[3], S.h, 'footer (or caption) ends the strip')
 }
+
+// the couple's own strip design: blank boxes in its centre colour are the photo areas
+const rgba = (w, h, f) => { const a = new Uint8ClampedArray(w * h * 4); for (let i = 0; i < w * h; i++) a.set(f(i % w, Math.floor(i / w)), i * 4); return a }
+const RED = [150, 20, 30, 255], CREAM = [245, 238, 225, 255]
+const three = photoMask(rgba(100, 300, (x, y) => (x >= 10 && x < 90 && [[10, 90], [105, 185], [200, 280]].some(([a, b]) => y >= a && y < b) ? CREAM : RED)), 100, 300)
+const boxes3 = findHoles(three.mask, 100, 300, 0.03)
+assert.ok(three.solid && boxes3.length === 3, 'three solid boxes found')
+assert.deepEqual(fitHoles(100, 300, boxes3, true).wins, [[108, 108, 864, 864], [108, 1134, 864, 864], [108, 2160, 864, 864]], 'used as is, top to bottom, no bleed')
+assert.equal(findHoles(photoMask(rgba(100, 300, () => RED), 100, 300).mask, 100, 300, 0.03).length, 0, 'plain design: no boxes')
+
+// a kad with one blank box: the box grows to hold three photos, header and footer kept
+const kad = findHoles(photoMask(rgba(100, 125, (x, y) => (x >= 15 && x < 85 && y >= 30 && y < 95 ? CREAM : RED)), 100, 125).mask, 100, 125, 0.03)
+assert.deepEqual(kad, [[15, 30, 70, 65]])
+const B = fitBox(100, 125, kad[0]), [bx, by, bw, bh] = kad[0].map((v) => Math.round(v * 10.8))
+for (const [x, y, w, h] of B.wins) assert.ok(x >= bx && x + w <= bx + bw && y >= by, 'photos inside the box')
+for (let i = 1; i < 3; i++) assert.ok(B.wins[i][1] > B.wins[i - 1][1] + B.wins[i - 1][3], 'photos do not overlap')
+const [head, foot] = B.parts.slice(-2), boxEnd = foot[2]
+assert.deepEqual(head, [0, by, 0])
+assert.ok(B.wins[2][1] + B.wins[2][3] < B.logoY && B.logoY < boxEnd && foot[2] + foot[1] === B.h, 'logo under the photos, footer ends the strip')
+const tiles = B.parts.slice(0, -2)
+assert.ok(tiles.every(([sy, sh, dy], i) => sy === by && sh === bh && dy === by + i * bh) && tiles.at(-1)[2] + bh >= boxEnd, 'box rows repeat to the footer')
+assert.deepEqual(tiles.map((t) => t[3]), tiles.map((_, i) => i % 2 === 1), 'every other copy mirrored')
 
 // kad artwork warnings
 const px = (n, a) => Uint8ClampedArray.from({ length: n * 4 }, (_, i) => (i % 4 === 3 ? a : 200))
