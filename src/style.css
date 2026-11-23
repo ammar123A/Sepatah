@@ -169,6 +169,11 @@ a { color: var(--ink); }
 .cam-frame.art { --bw: clamp(16px, 4.5vw, 24px); --fx: calc(2 * var(--bw)); --rest: calc(348px + 2 * var(--bw) / var(--ar)); --min: 100px; --bleed: 40px; margin-block: -6px; padding: 0; border-style: solid; border-width: calc(var(--bw) / var(--ar)) var(--bw); border-radius: 0; border-image: var(--art) 18% round; background: var(--card); }
 .cam-frame.art .cam { border-radius: 8px; }
 .cam-frame.art::before, .cam-frame.art::after { content: none; }
+/* artwork with an empty box (a kad with a blank middle): the whole design once, the camera in its box */
+.cam-frame.whole { display: block; width: min(100%, (100dvh - 375px) * var(--ar)); padding: 0; border: 0; border-radius: 0; }
+.cam-frame.whole .whole-art { display: block; width: 100%; height: auto; }
+.cam-frame.whole .cam { position: absolute; min-height: 0; aspect-ratio: auto; border-radius: 4px; }
+.cam-frame.whole::before, .cam-frame.whole::after { content: none; }
 .feed { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
 .feed.rear { transform: none; } /* only the selfie camera is mirrored */
 .flip { position: absolute; top: 12px; right: 12px; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: rgba(0, 0, 0, .4); color: #fff; display: grid; place-items: center; }

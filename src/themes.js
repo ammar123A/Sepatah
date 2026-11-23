@@ -329,10 +329,26 @@ export const kadBox = (size, dvh) => size && { aspectRatio: `${size[0]} / ${size
 
 // ---- video wish frame ----
 // The recorder's look, baked into the video: names on top, then the camera in the arch (keyline + two bouquets),
-// or inside the couple's own frame artwork, 9-sliced at 18% like the CSS border-image.
+// or in the couple's artwork: shown whole with the camera in its empty box, else 9-sliced at 18% like the CSS border-image.
 export const REC = { width: 720, height: 1280 }
-// ar: the artwork's width / height, or null for the arch. Window is 3:4 like .cam.
-export function recLayout(ar, head) {
+
+// The empty box in a couple's artwork (a kad with a blank middle) as fractions [x, y, w, h] of the image, or null.
+// img must be CORS-readable. Found on a small copy, like the photo frames.
+export function artBox(img) {
+  const w = Math.min(360, img.width), h = Math.round((img.height * w) / img.width)
+  const g = Object.assign(document.createElement('canvas'), { width: w, height: h }).getContext('2d', { willReadFrequently: true })
+  g.drawImage(img, 0, 0, w, h)
+  const b = findHoles(photoMask(g.getImageData(0, 0, w, h).data, w, h).mask, w, h, 0.1)[0]
+  return b && b[2] >= w * 0.4 ? [b[0] / w, b[1] / h, b[2] / w, b[3] / h] : null
+}
+
+// ar: the artwork's width / height, or null for the arch. box: artBox's fractions, or null. Window is 3:4 like .cam, or the box.
+export function recLayout(ar, head, box) {
+  if (box) {
+    const headH = head ? 150 : 0, fw = Math.round(Math.min(680, (REC.height - headH - 60) * ar)), fh = Math.round(fw / ar)
+    const fx = (REC.width - fw) / 2, fy = Math.round((REC.height - fh - headH) / 2) + headH, [bx, by, bw, bh] = box
+    return { frame: [fx, fy, fw, fh], win: [fx + bx * fw, fy + by * fh, bw * fw, bh * fh].map(Math.round), pad: null, headY: fy - headH }
+  }
   const w = 564, h = 752
   const [px, py] = ar ? [44, Math.round(44 / Math.max(ar, 0.35))] : [9, 9]
   const fw = w + 2 * px, fh = h + 2 * py, headH = head ? 150 : 0
@@ -361,8 +377,8 @@ function nineSlice(g, img, [x, y, w, h], [bx, by]) {
 
 // r: resolve(theme). art / sprig: loaded Images (either may be null). Returns the still layers and the camera window;
 // per frame: bg, then the camera clipped by clip(g), then top.
-export function recLayers(r, { couple, label, art, sprig }) {
-  const L = recLayout(art && art.width / art.height, !!couple)
+export function recLayers(r, { couple, label, art, sprig, box }) {
+  const L = recLayout(art && art.width / art.height, !!couple, art && box)
   const [fx, fy, fw, fh] = L.frame, [wx, wy, ww, wh] = L.win
   const layer = () => Object.assign(document.createElement('canvas'), REC)
   const bg = layer(), g = bg.getContext('2d')
@@ -383,10 +399,11 @@ export function recLayers(r, { couple, label, art, sprig }) {
   }
   const clip = (c) => {
     c.beginPath()
-    c.roundRect(wx, wy, ww, wh, art ? 12 : [ww / 2, ww / 2, 36, 36])
+    c.roundRect(wx, wy, ww, wh, art ? (box ? 4 : 12) : [ww / 2, ww / 2, 36, 36])
   }
   let top = null
-  if (art) {
+  if (art && box) g.drawImage(art, fx, fy, fw, fh)
+  else if (art) {
     g.fillStyle = r.custom.paper ? hexMix(r.paper, '#FFFFFF', 0.6) : r.card
     g.fillRect(fx, fy, fw, fh)
     nineSlice(g, art, L.frame, L.pad)

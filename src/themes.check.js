@@ -91,6 +91,11 @@ const tiles = B.parts.slice(0, -2)
 assert.ok(tiles.every(([sy, sh, dy], i) => sy === by && sh === bh && dy === by + i * bh) && tiles.at(-1)[2] + bh >= boxEnd, 'box rows repeat to the footer')
 assert.deepEqual(tiles.map((t) => t[3]), tiles.map((_, i) => i % 2 === 1), 'every other copy mirrored')
 
+// video: artwork with an empty box is shown whole, camera in the box
+const R = recLayout(0.8, true, [0.1, 0.25, 0.8, 0.5]), [rfx, rfy, rfw, rfh] = R.frame
+assert.ok(rfw === 680 && rfh === 850 && rfx >= 0 && rfy + rfh <= REC.height && R.headY >= 0, 'kad fits under the names')
+assert.deepEqual(R.win, [Math.round(rfx + 68), rfy + 213, 544, 425], 'camera fills the box')
+
 // kad artwork warnings
 const px = (n, a) => Uint8ClampedArray.from({ length: n * 4 }, (_, i) => (i % 4 === 3 ? a : 200))
 assert.deepEqual(artWarnings('image/png', 1500, px(4, 0)), [], 'big, really transparent PNG')

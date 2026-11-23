@@ -3,7 +3,7 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { pickMime, sendMedia, sendErr, newJob, camera, fmt, buzz, lastName, keepName } from './lib.js'
 import { t, LangToggle } from './i18n.js'
-import { resolve, bouquet, cover, recLayers, REC } from './themes.js'
+import { resolve, bouquet, cover, recLayers, artBox, REC } from './themes.js'
 import CamError from './CamError.vue'
 
 const props = defineProps({ slug: String, source: { type: String, default: 'event' }, couple: String, art: String, artSize: Array, theme: Object })
@@ -32,6 +32,10 @@ let mr, chunks, t0, timer
 // The wedding's design goes into the video too: the camera is drawn into the frame on a canvas and that canvas is recorded.
 // Falls back to the plain camera if anything here fails (old browser, artwork blocked).
 let layers = null, raf = 0, canvasTrack = null
+const box = ref(null) // the artwork's empty box: the camera goes in it, with the whole design around (themes.js artBox)
+const ready = ref(!props.art) // the artwork frame stays hidden until we know which way it's drawn
+const frameStyle = computed(() => props.art && { '--art': `url(${props.art})`, '--ar': props.artSize ? props.artSize[0] / props.artSize[1] : .71, visibility: ready.value ? null : 'hidden' })
+const camBox = computed(() => box.value && Object.fromEntries(['left', 'top', 'width', 'height'].map((k, i) => [k, box.value[i] * 100 + '%'])))
 const img = (src) => new Promise((ok, no) => Object.assign(new Image(), { crossOrigin: 'anonymous', onload() { ok(this) }, onerror: no, src }))
 async function prepare() {
   try {
@@ -43,10 +47,12 @@ async function prepare() {
       document.fonts.load(`56px "${r.font}"`),
       document.fonts.load('21px Figtree'),
     ])
-    layers = recLayers(r, { couple: props.couple, label: t('wishFor'), art, sprig })
+    try { box.value = art && artBox(art) } catch { box.value = null } // unreadable artwork: the border frame
+    layers = recLayers(r, { couple: props.couple, label: t('wishFor'), art, sprig, box: box.value })
   } catch (e) {
     console.warn('video frame off', e)
   }
+  ready.value = true
 }
 function recStream() {
   const cam = stream()
@@ -271,8 +277,9 @@ onBeforeUnmount(() => clip.value && URL.revokeObjectURL(clip.value.url))
           <p v-if="couple" class="rec-head"><span>{{ t('wishFor') }}</span><b>{{ couple }}</b></p>
           <CamError v-if="!camOk" :err="camErr" :fallback="t('useCamApp')" @retry="openCam(true)" @fallback="fileEl.click()" />
           <!-- v-show, not v-if: the video element must stay so a retry can attach the camera to it -->
-          <div v-show="camOk" class="cam-frame" :class="{ art }" :style="art && { '--art': `url(${art})`, '--ar': artSize ? artSize[0] / artSize[1] : .71 }">
-          <div class="cam">
+          <div v-show="camOk" class="cam-frame" :class="{ art: art && !box, whole: box }" :style="frameStyle">
+          <img v-if="box" class="whole-art" :src="art" alt="" />
+          <div class="cam" :style="camBox">
             <video ref="camEl" class="feed" :class="{ rear: facing !== 'user' }" autoplay muted playsinline v-show="camOk"></video>
             <!-- hidden while recording: swapping the stream would cut the recording -->
             <button v-if="camOk && rec !== 'recording'" class="flip" :aria-label="t('flip')" @click="flip"><svg class="ic"><use href="#i-flip" /></svg></button>
