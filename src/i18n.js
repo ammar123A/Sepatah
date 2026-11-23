@@ -101,6 +101,7 @@ const S = {
   zipFail: ['Muat turun terhenti. Semak sambungan anda, kemudian cuba lagi.', 'The download stopped. Check your connection, then try again.'],
   anon: ['Tanpa nama', 'Anonymous'],
   view: ['Lihat gambar', 'View photo'],
+  viewVideo: ['Tonton video', 'Watch video'],
   close: ['Tutup', 'Close'],
   galEmpty: ['Belum ada apa-apa di sini', 'Nothing here yet'],
   galEmptyPre: ['Ucapan video yang dihantar bersama undangan akan muncul di sini.', 'Video wishes sent with the invitation will appear here.'],

@@ -157,8 +157,10 @@ function show(it, i) {
         <div v-if="saving" class="progress" role="progressbar" :aria-valuenow="saving.done" :aria-valuemax="saving.total"><i :style="{ width: (saving.done / saving.total) * 100 + '%' }"></i></div>
         <div :key="tab" class="vids">
           <figure v-for="(it, i) in items" :key="it.id" class="vid" :style="{ animationDelay: Math.min(i, 12) * 40 + 'ms' }">
-            <button v-if="tab === 'photo'" class="vid-open" :aria-label="t('view')" @click="show(it, i)"><img :src="it.url" alt="" loading="lazy" /></button>
-            <video v-else :src="it.url" controls playsinline preload="metadata"></video>
+            <button class="vid-open" :aria-label="t(tab === 'photo' ? 'view' : 'viewVideo')" @click="show(it, i)">
+              <img v-if="tab === 'photo'" :src="it.url" alt="" loading="lazy" />
+              <template v-else><video :src="`${it.url}#t=0.1`" muted playsinline preload="metadata" tabindex="-1"></video><span class="play"><svg class="ic"><use href="#i-video" /></svg></span></template>
+            </button>
             <figcaption class="inline">
               <span>{{ it.guest_name || t('anon') }}<br /><small>{{ tab === 'pre' ? dateStr(it.created_at) : timeStr(it.created_at) }}<template v-if="it.duration"> · {{ fmt(it.duration) }}</template></small></span>
               <a class="back" :href="dl(it, i)" :aria-label="t('download')"><svg class="ic sm"><use href="#i-download" /></svg></a>
@@ -168,9 +170,10 @@ function show(it, i) {
       </template>
     </main>
 
-    <dialog ref="box" class="box" @click.self="box.close()">
+    <dialog ref="box" class="box" @click.self="box.close()" @close="cur = null">
       <template v-if="cur">
-        <img :src="cur.it.url" :alt="cur.it.guest_name || ''" />
+        <img v-if="tab === 'photo'" :src="cur.it.url" :alt="cur.it.guest_name || ''" />
+        <video v-else :src="cur.it.url" controls autoplay playsinline></video>
         <div class="row">
           <a class="btn sm" :href="dl(cur.it, cur.i)"><svg class="ic sm"><use href="#i-download" /></svg>{{ t('download') }}</a>
           <button class="back" :aria-label="t('close')" @click="box.close()"><svg class="ic sm"><use href="#i-x" /></svg></button>

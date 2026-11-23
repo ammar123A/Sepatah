@@ -302,6 +302,13 @@ const host = location.host
 // Table card, built from the saved event so an unsaved edit never gets printed.
 // ponytail: encodes location.origin, so open admin on the production domain before downloading for print
 const savedEv = ref(null) // { slug, bride, groom, event_date }
+const mediaBox = ref(null)
+const viewing = ref(null) // { it, kind }
+function view(it, kind) {
+  viewing.value = { it, kind }
+  mediaBox.value.showModal()
+}
+
 const qrUrl = computed(() => savedEv.value && `${origin}/${savedEv.value.slug}/tetamu`)
 const qr = ref(null) // { svg, card, sheet }
 const qrBox = ref(null)
@@ -347,8 +354,8 @@ async function drawCard(ev, url) {
     g.fillStyle = color
     g.fillText(s, cx, y)
   }
-  const date = new Date(ev.event_date + 'T00:00').toLocaleDateString('ms-MY', { day: 'numeric', month: 'long', year: 'numeric' })
-  text('Buku tetamu video', '#px "Young Serif"', 56, '#C4472D', 216)
+  const date = new Date(ev.event_date + 'T00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+  text('Video guestbook', '#px "Young Serif"', 56, '#C4472D', 216)
   // full names (binti/bin) go on two lines rather than shrinking to nothing
   const names = `${ev.bride} & ${ev.groom}`
   g.font = '110px Gloock'
@@ -366,9 +373,8 @@ async function drawCard(ev, url) {
   g.clip()
   g.drawImage(code, cx - 400, 496, 800, 800)
   g.restore()
-  text('Imbas untuk rakam ucapan video', '700 #px Figtree', 50, '#1C221E', 1406)
-  text('Scan to record a video wish', '#px "Young Serif"', 44, '#5C635D', 1468)
-  text('Dibuka semasa majlis sahaja · Open during the event only', '400 #px Figtree', 30, '#5C635D', 1536)
+  text('Scan to record a video wish', '700 #px Figtree', 50, '#1C221E', 1406)
+  text('Open during the event only', '#px "Young Serif"', 44, '#5C635D', 1468)
   // logo lockup: square icon + "sepatah." (the dot is the only accent on the card)
   g.font = '400 46px "Young Serif"'
   const wWord = g.measureText('sepatah').width, wDot = g.measureText('.').width
@@ -451,7 +457,9 @@ function drawSheet(card) {
           <p v-else-if="wishes && !wishes.length" class="hint left">No videos yet. Pre-event wishes and QR guestbook videos show up here.</p>
           <div v-else-if="wishes" class="vids">
             <figure v-for="w in wishes" :key="w.id" class="vid" :class="{ hid: w.status === 'hidden' }">
-              <video :src="w.url" controls playsinline preload="metadata"></video>
+              <button type="button" class="vid-open" aria-label="Watch video" @click="view(w, 'video')">
+                <video :src="`${w.url}#t=0.1`" muted playsinline preload="metadata" tabindex="-1"></video><span class="play"><svg class="ic"><use href="#i-video" /></svg></span>
+              </button>
               <figcaption>
                 <span>{{ w.guest_name || 'Anonymous' }}<br /><small>{{ w.source === 'pre' ? 'Pre-event' : 'Guestbook' }} · {{ when(w.created_at) }}<template v-if="w.duration"> · {{ fmt(w.duration) }}</template><template v-if="w.status === 'hidden'"> · Hidden</template></small></span>
                 <span class="row">
@@ -464,6 +472,17 @@ function drawSheet(card) {
         </div>
       </section>
 
+      <dialog ref="mediaBox" class="box" @click.self="mediaBox.close()" @close="viewing = null">
+        <template v-if="viewing">
+          <img v-if="viewing.kind === 'photo'" :src="viewing.it.url" :alt="`Photo from ${viewing.it.guest_name || 'a guest'}`" />
+          <video v-else :src="viewing.it.url" controls autoplay playsinline></video>
+          <div class="row">
+            <span>{{ viewing.it.guest_name || 'Anonymous' }}</span>
+            <button type="button" class="back" aria-label="Close" @click="mediaBox.close()"><svg class="ic sm"><use href="#i-x" /></svg></button>
+          </div>
+        </template>
+      </dialog>
+
       <section v-if="!isNew" id="photos" class="fs">
         <header><h2>Photos</h2><p class="hint left">Approved photos go on the live screen. Pending ones are only in the couple's gallery, hidden ones nowhere. Delete is permanent.</p></header>
         <div class="fs-body">
@@ -473,7 +492,7 @@ function drawSheet(card) {
           <button v-if="photos" type="button" class="linkbtn" style="align-self: start" @click="loadMedia('photos')">Check for new photos</button>
           <div v-if="photos?.length" class="vids">
             <figure v-for="p in photos" :key="p.id" class="vid" :class="{ hid: p.status === 'hidden' }">
-              <img :src="p.url" :alt="`Photo from ${p.guest_name || 'a guest'}`" loading="lazy" />
+              <button type="button" class="vid-open" aria-label="View photo" @click="view(p, 'photo')"><img :src="p.url" :alt="`Photo from ${p.guest_name || 'a guest'}`" loading="lazy" /></button>
               <figcaption>
                 <span>{{ p.guest_name || 'Anonymous' }}<br /><small>{{ when(p.created_at) }} · {{ { pending: 'Pending', approved: 'On live screen', hidden: 'Hidden' }[p.status] }}</small></span>
                 <span class="row">
@@ -629,8 +648,8 @@ function drawSheet(card) {
                 <img :src="qr.card" :alt="`Table card, scans open ${qrUrl}`" />
                 <div class="row">
                   <div class="row" style="flex-wrap: wrap">
-                    <a class="btn sm" :href="qr.card" :download="`${savedEv.slug}-kad-meja.png`">Table card (PNG)</a>
-                    <a class="btn sm" :href="qr.sheet" :download="`${savedEv.slug}-kad-meja-a4.png`">A4 sheet, 3 cards</a>
+                    <a class="btn sm" :href="qr.card" :download="`${savedEv.slug}-table-card.png`">Table card (PNG)</a>
+                    <a class="btn sm" :href="qr.sheet" :download="`${savedEv.slug}-table-card-a4.png`">A4 sheet, 3 cards</a>
                     <button type="button" class="btn sm" @click="printSheet">Print A4</button>
                     <a class="btn sm" :href="`data:image/svg+xml;charset=utf-8,${encodeURIComponent(qr.svg)}`" :download="`${savedEv.slug}-qr.svg`">QR only (SVG)</a>
                   </div>
@@ -642,8 +661,8 @@ function drawSheet(card) {
               <p class="hint left">Table card, 4R (4 x 6 in) at 300 dpi. The A4 sheet holds 3, print at 100% and cut. Scans open {{ qrUrl }}.</p>
               <p v-if="qrErr" class="err" role="alert"><svg class="ic sm"><use href="#i-alert" /></svg>{{ qrErr }}</p>
               <div class="row">
-                <a class="btn sm" :class="{ off: !qr }" :href="qr?.card" :download="`${savedEv.slug}-kad-meja.png`">Table card (PNG)</a>
-                <a class="btn sm" :class="{ off: !qr }" :href="qr?.sheet" :download="`${savedEv.slug}-kad-meja-a4.png`">A4 sheet, 3 cards</a>
+                <a class="btn sm" :class="{ off: !qr }" :href="qr?.card" :download="`${savedEv.slug}-table-card.png`">Table card (PNG)</a>
+                <a class="btn sm" :class="{ off: !qr }" :href="qr?.sheet" :download="`${savedEv.slug}-table-card-a4.png`">A4 sheet, 3 cards</a>
                 <button type="button" class="btn sm" :disabled="!qr" @click="printSheet">Print A4</button>
                 <a class="btn sm" :class="{ off: !qr }" :href="qr && `data:image/svg+xml;charset=utf-8,${encodeURIComponent(qr.svg)}`" :download="`${savedEv.slug}-qr.svg`">QR only (SVG)</a>
               </div>

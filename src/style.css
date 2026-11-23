@@ -277,7 +277,7 @@ div.polaroid .cap { position: absolute; left: 0; right: 0; bottom: 0; height: au
 .tabs small { margin-left: 6px; font-weight: 500; opacity: .7; font-variant-numeric: tabular-nums; }
 .box { width: min(920px, 100vw - 32px); max-height: calc(100dvh - 32px); padding: 12px; border: 0; border-radius: var(--r-card); background: var(--card); color: var(--ink); }
 .box::backdrop { background: color-mix(in srgb, var(--deep-3, #142A1F) 85%, transparent); } /* older browsers don't pass vars to ::backdrop */
-.box img { display: block; max-width: 100%; max-height: calc(100dvh - 124px); margin: 0 auto 12px; border-radius: 8px; }
+.box img, .box video { display: block; max-width: 100%; max-height: calc(100dvh - 124px); margin: 0 auto 12px; border-radius: 8px; background: var(--deep); }
 .box .row { justify-content: space-between; }
 
 /* ---- invitation: arch first, then left-aligned sections on plain paper ---- */
@@ -388,7 +388,10 @@ div.polaroid .cap { position: absolute; left: 0; right: 0; bottom: 0; height: au
 .vids { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
 .vid { margin: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 16px; background: var(--card); transition: opacity .2s; animation: rise .4s var(--ease) both; }
 .vid video, .vid img { display: block; width: 100%; aspect-ratio: 3 / 4; object-fit: cover; background: var(--deep); }
-.vid-open { display: block; width: 100%; padding: 0; border: 0; background: none; }
+.vid-open { position: relative; display: block; width: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; }
+.vid-open video { pointer-events: none; }
+.vid-open .play { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; }
+.vid-open .play .ic { width: 44px; height: 44px; padding: 10px; border-radius: 50%; background: rgb(0 0 0 / .45); }
 .vid figcaption { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px 12px; font-size: var(--fs-sm); font-weight: 600; line-height: 1.4; }
 .vid figcaption.inline { flex-direction: row; align-items: center; justify-content: space-between; padding: 8px 8px 8px 12px; }
 .vid small { font-size: 12px; font-weight: 400; color: var(--mut); }
